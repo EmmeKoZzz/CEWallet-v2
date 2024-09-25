@@ -14,6 +14,7 @@ namespace ApiServices.Services
 		public async Task<IEnumerable<CurrencyDto>> GetAll(bool funds = false) =>
 			funds
 				? await dbContext.Currencies
+					.Where(entity => entity.Active)
 					.Include(e => e.FundCurrencies)
 					.ThenInclude(fc => fc.Fund)
 					.ThenInclude(f => f.FundCurrencies)
@@ -22,7 +23,7 @@ namespace ApiServices.Services
 					{
 						Currency = entity.Name,
 						Id = entity.Id,
-						ValorUrl = entity.ValueUrl,
+						ValueUrl = entity.ValueUrl,
 						Funds = entity.FundCurrencies.Select(fundCurrency => new FundDto
 						{
 							Id = fundCurrency.FundId,
@@ -34,31 +35,37 @@ namespace ApiServices.Services
 						})
 					})
 					.ToArrayAsync()
-				: await dbContext.Currencies.Select(entity => new CurrencyDto
+				: await dbContext.Currencies
+					.Where(entity => entity.Active)
+					.Select(entity => new CurrencyDto
 					{
 						Currency = entity.Name,
 						Id = entity.Id,
-						ValorUrl = entity.ValueUrl,
+						ValueUrl = entity.ValueUrl,
 					})
 					.ToArrayAsync();
 
 		/// <summary>Adds a new currency.</summary>
-		public async Task<CurrencyDto> Add(AddCurrencyDto info)
+		public async Task<ServiceFlag<CurrencyDto>> Add(AddCurrencyDto info)
 		{
 			var currency = await dbContext.Currencies.SingleOrDefaultAsync(entity => entity.Name == info.Name);
-			if (currency is { Active: false })
+
+			switch (currency)
 			{
-				currency.Active = true;
-			}
-			else
-			{
-				currency = new Currency { Name = info.Name, ValueUrl = info.ValorUrl };
-				await dbContext.Currencies.AddAsync(currency);
+				case { Active: false }:
+					currency.Active = true;
+					break;
+				case { Active: true }:
+					return new ServiceFlag<CurrencyDto>(HttpStatusCode.BadRequest, Message: "Currency already exists.");
+				default:
+					currency = new Currency { Name = info.Name, ValueUrl = info.ValorUrl };
+					await dbContext.Currencies.AddAsync(currency);
+					break;
 			}
 
 			await dbContext.SaveChangesAsync();
-			return new CurrencyDto
-				{ Id = currency.Id, Funds = new List<FundDto>(), Currency = info.Name, ValorUrl = info.ValorUrl };
+			return new ServiceFlag<CurrencyDto>(HttpStatusCode.OK, new CurrencyDto
+				{ Id = currency.Id, Funds = [], Currency = currency.Name, ValueUrl = currency.ValueUrl });
 		}
 
 		/// <summary>Updates a currency.</summary>
@@ -72,7 +79,7 @@ namespace ApiServices.Services
 
 			await dbContext.SaveChangesAsync();
 			return new ServiceFlag<CurrencyDto>(HttpStatusCode.OK,
-				new CurrencyDto { Id = currency.Id, Currency = currency.Name, ValorUrl = currency.ValueUrl });
+				new CurrencyDto { Id = currency.Id, Currency = currency.Name, ValueUrl = currency.ValueUrl });
 		}
 
 		/// <summary>Deletes a currency.</summary>
@@ -98,7 +105,7 @@ namespace ApiServices.Services
 			return new ServiceFlag<CurrencyDto>(HttpStatusCode.OK,
 				new CurrencyDto
 				{
-					Currency = currency.Name, Funds = new List<FundDto>(), Id = Guid.Empty, ValorUrl = currency.ValueUrl
+					Currency = currency.Name, Funds = new List<FundDto>(), Id = Guid.Empty, ValueUrl = currency.ValueUrl
 				});
 		}
 	}

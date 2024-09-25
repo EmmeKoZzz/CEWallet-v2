@@ -43,7 +43,12 @@ public class CurrencyController(CurrencyService currency) : ControllerBase
 	{
 		try
 		{
-			return this.CustomOk(await currency.Add(info));
+			var res = await currency.Add(info);
+			return res.Status switch
+			{
+				HttpStatusCode.BadRequest => this.CustomBadRequest(detail: res.Message),
+				HttpStatusCode.OK => this.CustomOk(res.Value)
+			};
 		}
 		catch (Exception e)
 		{

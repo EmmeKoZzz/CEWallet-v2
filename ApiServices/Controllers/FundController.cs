@@ -69,16 +69,21 @@ public class FundController : ControllerBase
 		throw new NotImplementedException();
 	}
 
-	[HttpPatch("update-funds")]
+	[HttpPatch("{id:guid}/withdrawal")]
 	[AuthorizeRole(UserRole.Type.Administrator)]
-	public async Task<ActionResult<Response<object>>> UpdateFunds(object transferRequest)
+	public async Task<ActionResult<Response<object>>> Withdraw([FromRoute] Guid id, object info)
+	{
+		throw new NotImplementedException();
+	}
+
+	[HttpPatch("{id:guid}/deposit")]
+	[AuthorizeRole(UserRole.Type.Administrator)]
+	public async Task<ActionResult<Response<object>>> UpdateFunds([FromRoute] Guid id, object info)
 	{
 		throw new NotImplementedException();
 	}
 
 	/// <summary>Adds a user to an existing fund.</summary>
-	/// <param name="ids">The IDs of the fund and user.</param>
-	/// <response code="200">The updated fund with the added user.</response>
 	[HttpPatch("add-user")]
 	[AuthorizeRole(UserRole.Type.Administrator)]
 	public async Task<ActionResult<Response<object>>> AddUser([FromBody] object ids)
@@ -87,8 +92,6 @@ public class FundController : ControllerBase
 	}
 
 	/// <summary>Deletes a fund.</summary>
-	/// <param name="id">The ID of the fund to delete.</param>
-	/// <response code="200">A success message.</response>
 	[HttpDelete("{id:guid}")]
 	[AuthorizeRole(UserRole.Type.Administrator)]
 	public async Task<ActionResult<Response<object>>> Delete([FromRoute] Guid id)
