@@ -55,7 +55,7 @@ services.AddSwaggerGen(c =>
 services.AddDbContext<AppDbContext>();
 
 // Configure CORS (Cross-Origin Resource Sharing) based on the environment
-var origin = builder.Environment.IsEnvironment("Development") ? "*" : "https://cewallet.org";
+var origin = "*";
 services.AddCors(options =>
 {
 	options.AddPolicy("AllowedOrigins", policy =>
