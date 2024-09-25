@@ -87,7 +87,7 @@ public class FundService(AppDbContext dbContext)
 		// Prepare a query to fetch funds with associated currencies from the database.  
 		var query = dbContext.Funds.Include(entity => entity.FundCurrencies).ThenInclude(entity => entity.Currency);
 
-		// Initiate asynchronous tasks to fetch the source (from) and destination (to) funds.  
+		// Initiate asynchronous tasks to fetch the source and destination funds.  
 		var (fromFundTask, toFundTask) =
 			(query.SingleOrDefaultAsync(entity => entity.Id == info.Source),
 				query.SingleOrDefaultAsync(entity => entity.Id == info.Destination));
@@ -242,7 +242,42 @@ public class FundService(AppDbContext dbContext)
 		return new ServiceFlag<FundDto>(OK, CreateFundDto(fund));
 	}
 
-	// PRIVATE
+	/// <summary>Attaches a user to a specified fund by associating the user with the fund.</summary>  
+	/// <param name="userId">The unique identifier of the user to be attached to the fund.</param>  
+	/// <param name="fundId">The unique identifier of the fund to which the user will be attached.</param>  
+	/// <returns>A ServiceFlag containing the result of the attach operation,   
+	/// including the FundDto if successful or an error message if unsuccessful.</returns>  
+	public async Task<ServiceFlag<FundDto>> AttachUser(Guid userId, Guid fundId)  
+	{  
+		// Start asynchronous tasks to retrieve both the fund and the user concurrently.  
+		var fundTask = dbContext.Funds.FindAsync(fundId).AsTask(); // Asynchronously find the fund by its ID.  
+		var userTask = dbContext.Users.Include(entity => entity.Role) // Include user's role details  
+			.SingleOrDefaultAsync(entity => entity.Id == userId); // Asynchronously find the user by ID.  
+
+		// Wait for both tasks to complete.  
+		await Task.WhenAll(fundTask, userTask);  
+    
+		// Retrieve the results from the tasks.  
+		var (fund, user) = (await fundTask, await userTask);  
+
+		// Check if either the fund or the user was not found.  
+		if (fund == null || user == null)  
+			return new ServiceFlag<FundDto>(NotFound, Message: $"{(fund == null ? "Fund" : "User")} not found.");  
+
+		// Attach the user to the fund.  
+		fund.User = user;  
+
+		// Save the changes to the database asynchronously.  
+		await dbContext.SaveChangesAsync();  
+
+		// Return a successful response containing the updated fund details.  
+		return new ServiceFlag<FundDto>(OK, CreateFundDto(fund));  
+	}
+
+	/*
+	 * PRIVATE
+	 */
+
 	// Creates a FundDto object from a Fund entity.  
 	private static FundDto CreateFundDto(Fund fund) => new(
 		fund.Id,

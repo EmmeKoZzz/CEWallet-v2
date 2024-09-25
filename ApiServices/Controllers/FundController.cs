@@ -196,11 +196,23 @@ public class FundController(FundService funds) : ControllerBase
 		}
 	}
 
-	[HttpPost("add-user")]
+	[HttpPatch("{fundId:guid}/attach-user/{userid:guid}")]
 	[AuthorizeRole(UserRole.Type.Administrator)]
-	public async Task<ActionResult<Response<object>>> AddUser([FromBody] object ids)
+	public async Task<ActionResult<Response<object>>> AddUser(Guid fundId, Guid userid)
 	{
-		throw new NotImplementedException();
+		try
+		{
+			var res = await funds.AttachUser(userid, fundId);
+			return res.Status switch
+			{
+				HttpStatusCode.OK => this.CustomOk(res.Value),
+				HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message)
+			};
+		}
+		catch (Exception e)
+		{
+			return this.InternalError(e.Message);
+		}
 	}
 
 	[HttpDelete("{id:guid}")]
