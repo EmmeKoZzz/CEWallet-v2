@@ -1,7 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Common.DataTransferObjects;
 
-public class AddCurrencyDto
-{
-	public string Name { get; set; }
-	public string ValorUrl { get; set; }
-}
+public record AddCurrencyDto([property: Required] string Name, string UrlValue);

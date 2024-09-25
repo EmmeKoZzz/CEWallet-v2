@@ -11,39 +11,45 @@ namespace ApiServices.Services
 	public class CurrencyService(AppDbContext dbContext)
 	{
 		/// <summary>Retrieves currencies (optional with funds).</summary>
-		public async Task<IEnumerable<CurrencyDto>> GetAll(bool funds = false) =>
-			funds
-				? await dbContext.Currencies
-					.Where(entity => entity.Active)
-					.Include(e => e.FundCurrencies)
-					.ThenInclude(fc => fc.Fund)
-					.ThenInclude(f => f.FundCurrencies)
-					.ThenInclude(fc => fc.Currency)
-					.Select(entity => new CurrencyDto
-					{
-						Currency = entity.Name,
-						Id = entity.Id,
-						ValueUrl = entity.ValueUrl,
-						Funds = entity.FundCurrencies.Select(fundCurrency => new FundDto
-						{
-							Id = fundCurrency.FundId,
-							Name = fundCurrency.Fund.Name,
-							LocationUrl = fundCurrency.Fund.LocationUrl,
-							CreateAt = fundCurrency.Fund.CreatedAt,
-							Currencies = fundCurrency.Fund.FundCurrencies.Select(currency =>
-								new FundDto.FundCurrency(currency.Currency.Name, currency.Amount))
-						})
-					})
-					.ToArrayAsync()
-				: await dbContext.Currencies
+		public async Task<IEnumerable<CurrencyDto>> GetAll(bool funds = false)
+		{
+			// If fonds are not requested, return only the active currencies.  
+			if (!funds)
+				return await dbContext.Currencies
 					.Where(entity => entity.Active)
 					.Select(entity => new CurrencyDto
 					{
-						Currency = entity.Name,
-						Id = entity.Id,
-						ValueUrl = entity.ValueUrl,
+						Currency = entity.Name, // Map currency name to DTO property  
+						Id = entity.Id, // Map currency ID to DTO property  
+						ValueUrl = entity.ValueUrl // Map value URL to DTO property  
 					})
-					.ToArrayAsync();
+					.ToArrayAsync(); // Execute the query asynchronously and convert the results to an array.  
+
+			// If funds are requested, retrieve currencies along with their associated funds and fund currencies.  
+			var res = await dbContext.Currencies
+				.Where(entity => entity.Active) // Filter to include only active currencies  
+				.Include(e => e.FundCurrencies) // Include related FundCurrency entities  
+				.ThenInclude(fc => fc.Fund) // Include related Fund entities from FundCurrency  
+				.ThenInclude(f => f.FundCurrencies) // Include currencies from the Fund  
+				.ThenInclude(fc => fc.Currency) // Include the Currency for each FundCurrency  
+				.ToArrayAsync(); // Execute the query asynchronously and convert the results to an array.  
+
+			// Map the retrieved currencies and their associated funds to DTOs.  
+			return res.Select(entity => new CurrencyDto
+			{
+				Currency = entity.Name, // Map currency name to DTO property  
+				Id = entity.Id, // Map currency ID to DTO property  
+				ValueUrl = entity.ValueUrl, // Map value URL to DTO property  
+				Funds = entity.FundCurrencies.Select(currencies => new FundDto(
+					currencies.FundId, // Map Fund ID to DTO  
+					currencies.Fund.Name, // Map Fund name to DTO  
+					currencies.Fund.CreatedAt, // Map Fund creation date to DTO  
+					LocationUrl: currencies.Fund.LocationUrl, // Map Fund location URL to DTO  
+					Currencies: currencies.Fund.FundCurrencies.Select(currency =>
+						new FundDto.FundCurrency(currency.Currency.Name, currency.Amount)) // Map currencies for the fund  
+				))
+			});
+		}
 
 		/// <summary>Adds a new currency.</summary>
 		public async Task<ServiceFlag<CurrencyDto>> Add(AddCurrencyDto info)
@@ -58,7 +64,7 @@ namespace ApiServices.Services
 				case { Active: true }:
 					return new ServiceFlag<CurrencyDto>(HttpStatusCode.BadRequest, Message: "Currency already exists.");
 				default:
-					currency = new Currency { Name = info.Name, ValueUrl = info.ValorUrl };
+					currency = new Currency { Name = info.Name, ValueUrl = info.UrlValue };
 					await dbContext.Currencies.AddAsync(currency);
 					break;
 			}
@@ -75,7 +81,7 @@ namespace ApiServices.Services
 			if (currency == null) return new ServiceFlag<CurrencyDto>(HttpStatusCode.NotFound);
 
 			currency.Name = info.Name;
-			currency.ValueUrl = info.ValorUrl;
+			currency.ValueUrl = info.UrlValue;
 
 			await dbContext.SaveChangesAsync();
 			return new ServiceFlag<CurrencyDto>(HttpStatusCode.OK,

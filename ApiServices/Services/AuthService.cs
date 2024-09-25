@@ -95,7 +95,7 @@ public class AuthService(
 		var name = claims.FindFirst(ClaimsIdentity.DefaultNameClaimType)!.Value;
 
 		var user = await userService.FindBy(name: name);
-		if (user == null)
+		if (user.Status != HttpStatusCode.OK)
 			return new ServiceFlag<TokenValidationDto?>(HttpStatusCode.Unauthorized);
 
 		if (rolesRequired == null || rolesRequired.Contains(UserRole.Value(role)))

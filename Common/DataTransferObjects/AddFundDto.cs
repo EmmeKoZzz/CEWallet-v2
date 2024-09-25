@@ -1,7 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Common.DataTransferObjects;
 
-public class AddFundDto
-{
-	public string Name { get; set; }
-	public string LocationUrl { get; set; }
-}
+public record AddFundDto([property: Required] string Name, string LocationUrl);

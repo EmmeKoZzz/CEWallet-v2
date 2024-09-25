@@ -3,11 +3,9 @@ using Common.Constants;
 
 namespace Common.DataTransferObjects;
 
-public class RegisterUserDto
-{
-	[Required] [MinLength(2)] public string UserName { get; set; }
-	[EmailAddress] [Required] public string Email { get; set; }
-	[Required] [MinLength(8)] public string Password { get; set; }
-	[Compare("Password")] public string PasswordConfirmation { get; set; }
-	[Required] public Guid RoleId { get; set; }
-}
+public record RegisterUserDto(
+	[property: Required, MinLength(2)] string UserName,
+	[property: Required, EmailAddress] string Email,
+	[property: Required, MinLength(8)] string Password,
+	[property: Compare("Password")] string PasswordConfirmation,
+	[property: Required] Guid RoleId);

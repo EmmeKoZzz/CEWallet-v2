@@ -1,13 +1,12 @@
 namespace Common.DataTransferObjects.ApiResponses;
 
-public class FundDto
+public record FundDto(
+	Guid Id,
+	string Name,
+	DateTime CreateAt,
+	string? LocationUrl = default,
+	IEnumerable<FundDto.FundCurrency>? Currencies = default,
+	UserDto? User = default)
 {
-	public Guid Id { get; set; }
-	public string Name { get; set; }
-	public UserDto? User { get; set; }
-	public string? LocationUrl { get; set; }
-	public DateTime CreateAt { get; set; }
-	public IEnumerable<FundCurrency> Currencies { get; set; }
-
 	public record FundCurrency(string Name, double Amount);
 }

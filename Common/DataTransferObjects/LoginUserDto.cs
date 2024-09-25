@@ -2,8 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Common.DataTransferObjects;
 
-public class LoginUserDto
-{
-	[Required] [MinLength(2)] public string UserName { get; set; }
-	[Required] [MinLength(8)] public string Password { get; set; }
-}
+public record LoginUserDto(
+	[property: Required, MinLength(2)] string UserName,
+	[property: Required, MinLength(8)] string Password);

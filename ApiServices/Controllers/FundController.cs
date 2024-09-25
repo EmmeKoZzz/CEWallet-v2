@@ -144,18 +144,56 @@ public class FundController(FundService funds) : ControllerBase
 		}
 	}
 
+	/// <summary> Withdraws funds from a specified account. </summary>
+	/// <param name="id">The ID of the account to withdraw from.</param>
+	/// <param name="info">The withdrawal information.</param>
+	/// <response code="200">Successful withdrawal.</response>
+	/// <response code="400">Invalid withdrawal request.</response>
+	/// <response code="404">Account not found.</response>
 	[HttpPost("{id:guid}/withdrawal")]
 	[AuthorizeRole]
-	public async Task<ActionResult<Response<object>>> Withdraw([FromRoute] Guid id, object info)
+	public async Task<ActionResult<Response<FundDto>>> Withdraw([FromRoute] Guid id, TransactionDto info)
 	{
-		throw new NotImplementedException();
+		try
+		{
+			var res = await funds.Withdraw(id, info);
+			return res.Status switch
+			{
+				HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message),
+				HttpStatusCode.BadRequest => this.CustomBadRequest(detail: res.Message),
+				HttpStatusCode.OK => this.CustomOk(res.Value)
+			};
+		}
+		catch (Exception e)
+		{
+			return this.InternalError(e.Message);
+		}
 	}
 
+	/// <summary>Deposits funds into a specified account.</summary>
+	/// <param name="id">The ID of the account to deposit into.</param>
+	/// <param name="info">The deposit information.</param>
+	/// <response code="200">Successful deposit.</response>
+	/// <response code="400">Invalid deposit request.</response>
+	/// <response code="404">Account not found.</response>
 	[HttpPost("{id:guid}/deposit")]
 	[AuthorizeRole(UserRole.Type.Administrator)]
-	public async Task<ActionResult<Response<object>>> Deposit([FromRoute] Guid id, object info)
+	public async Task<ActionResult<Response<FundDto>>> Deposit([FromRoute] Guid id, TransferDto info)
 	{
-		throw new NotImplementedException();
+		try
+		{
+			var res = await funds.Deposit(id, info);
+			return res.Status switch
+			{
+				HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message),
+				HttpStatusCode.BadRequest => this.CustomBadRequest(detail: res.Message),
+				HttpStatusCode.OK => this.CustomOk(res.Value)
+			};
+		}
+		catch (Exception e)
+		{
+			return this.InternalError(e.Message);
+		}
 	}
 
 	[HttpPost("add-user")]
