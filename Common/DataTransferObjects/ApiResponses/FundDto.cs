@@ -9,9 +9,5 @@ public class FundDto
 	public DateTime CreateAt { get; set; }
 	public IEnumerable<FundCurrency> Currencies { get; set; }
 
-	public class FundCurrency(string name, double amount)
-	{
-		public string Currency { get; } = name;
-		public double Amount { get; } = amount;
-	}
+	public record FundCurrency(string Name, double Amount);
 }
