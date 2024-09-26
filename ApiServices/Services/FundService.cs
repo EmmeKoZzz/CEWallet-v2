@@ -43,9 +43,9 @@ public class FundService(AppDbContext dbContext)
 	public async Task<IEnumerable<FundDto>> GetByUser(Guid id)
 	{
 		var res = await dbContext.Funds
-			.Include(entity => entity.FundCurrencies)
-			.ThenInclude(entity => entity.Fund)
 			.Where(entity => entity.UserId == id)
+			.Include(entity => entity.FundCurrencies)
+			.ThenInclude(entity => entity.Currency)
 			.ToArrayAsync();
 
 		return res.Select(CreateFundDto);
@@ -158,17 +158,16 @@ public class FundService(AppDbContext dbContext)
 	}
 
 	/// <summary>Withdraws a specified amount of currency from a fund.</summary>  
-	/// <param name="id">The unique identifier of the fund from which to withdraw.</param>  
 	/// <param name="info">Transaction details containing currency type and amount to withdraw.</param>  
 	/// <returns>A ServiceFlag containing the result of the withdrawal operation,   
 	/// including the FundDto if successful or an error message if unsuccessful.</returns>  
-	public async Task<ServiceFlag<FundDto>> Withdraw(Guid id, TransactionDto info)
+	public async Task<ServiceFlag<FundDto>> Withdraw(TransactionDto info)
 	{
 		// Retrieve the fund from the database, including its associated currencies.  
 		var fund = await dbContext.Funds
 			.Include(entity => entity.FundCurrencies) // Include related FundCurrency entities  
 			.ThenInclude(fundCurrency => fundCurrency.Currency) // Include the Currency details for each FundCurrency  
-			.SingleOrDefaultAsync(entity => entity.Id == id); // Search for the fund by ID  
+			.SingleOrDefaultAsync(entity => entity.Id == info.Source); // Search for the fund by ID  
 
 		// Check if the fund was found; if not, return a not found response.  
 		if (fund == null) return new ServiceFlag<FundDto>(NotFound, Message: "Fund not found.");
@@ -195,17 +194,16 @@ public class FundService(AppDbContext dbContext)
 	/// <summary>  
 	/// Deposits a specified amount of currency into a fund.  
 	/// </summary>  
-	/// <param name="id">The unique identifier of the fund where the currency will be deposited.</param>  
 	/// <param name="info">Transaction details containing currency type and amount to deposit.</param>  
 	/// <returns>A ServiceFlag containing the result of the deposit operation,   
 	/// including the FundDto if successful or an error message if unsuccessful.</returns>  
-	public async Task<ServiceFlag<FundDto>> Deposit(Guid id, TransactionDto info)
+	public async Task<ServiceFlag<FundDto>> Deposit(TransactionDto info)
 	{
 		// Retrieve the fund from the database, including its associated currencies.  
 		var fund = await dbContext.Funds
 			.Include(entity => entity.FundCurrencies) // Include related FundCurrency entities  
 			.ThenInclude(fundCurrency => fundCurrency.Currency) // Include the Currency details for each FundCurrency  
-			.SingleOrDefaultAsync(entity => entity.Id == id); // Search for the fund by ID  
+			.SingleOrDefaultAsync(entity => entity.Id == info.Source); // Search for the fund by ID  
 
 		// Check if the fund was found; if not, return a not found response.  
 		if (fund == null)
@@ -247,31 +245,31 @@ public class FundService(AppDbContext dbContext)
 	/// <param name="fundId">The unique identifier of the fund to which the user will be attached.</param>  
 	/// <returns>A ServiceFlag containing the result of the attach operation,   
 	/// including the FundDto if successful or an error message if unsuccessful.</returns>  
-	public async Task<ServiceFlag<FundDto>> AttachUser(Guid userId, Guid fundId)  
-	{  
+	public async Task<ServiceFlag<FundDto>> AttachUser(Guid userId, Guid fundId)
+	{
 		// Start asynchronous tasks to retrieve both the fund and the user concurrently.  
 		var fundTask = dbContext.Funds.FindAsync(fundId).AsTask(); // Asynchronously find the fund by its ID.  
 		var userTask = dbContext.Users.Include(entity => entity.Role) // Include user's role details  
 			.SingleOrDefaultAsync(entity => entity.Id == userId); // Asynchronously find the user by ID.  
 
 		// Wait for both tasks to complete.  
-		await Task.WhenAll(fundTask, userTask);  
-    
+		await Task.WhenAll(fundTask, userTask);
+
 		// Retrieve the results from the tasks.  
-		var (fund, user) = (await fundTask, await userTask);  
+		var (fund, user) = (await fundTask, await userTask);
 
 		// Check if either the fund or the user was not found.  
-		if (fund == null || user == null)  
-			return new ServiceFlag<FundDto>(NotFound, Message: $"{(fund == null ? "Fund" : "User")} not found.");  
+		if (fund == null || user == null)
+			return new ServiceFlag<FundDto>(NotFound, Message: $"{(fund == null ? "Fund" : "User")} not found.");
 
 		// Attach the user to the fund.  
-		fund.User = user;  
+		fund.User = user;
 
 		// Save the changes to the database asynchronously.  
-		await dbContext.SaveChangesAsync();  
+		await dbContext.SaveChangesAsync();
 
 		// Return a successful response containing the updated fund details.  
-		return new ServiceFlag<FundDto>(OK, CreateFundDto(fund));  
+		return new ServiceFlag<FundDto>(OK, CreateFundDto(fund));
 	}
 
 	/*

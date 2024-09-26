@@ -98,7 +98,7 @@ public class AuthService(
 		if (user.Status != HttpStatusCode.OK)
 			return new ServiceFlag<TokenValidationDto?>(HttpStatusCode.Unauthorized);
 
-		if (rolesRequired == null || rolesRequired.Contains(UserRole.Value(role)))
+		if (rolesRequired == null || !rolesRequired.Any() || rolesRequired.Contains(UserRole.Value(role)))
 			return new ServiceFlag<TokenValidationDto?>(
 				HttpStatusCode.OK, new TokenValidationDto(name, role));
 

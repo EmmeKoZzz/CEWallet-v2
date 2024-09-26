@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace Common.DataTransferObjects;
 
 public record ResetPasswordDto(
-	[property: Required] Guid UserId,
-	[property: Required, MinLength(8)] string OldPassword,
-	[property: Required, MinLength(8)] string Password,
+	[Required] Guid UserId,
+	[Required, MinLength(8)] string OldPassword,
+	[Required, MinLength(8)] string Password,
 	[property: Compare("Password")] string Confirmation);

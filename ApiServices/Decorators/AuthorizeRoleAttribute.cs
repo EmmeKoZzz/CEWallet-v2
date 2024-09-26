@@ -11,18 +11,18 @@ public class AuthorizeRoleAttribute : TypeFilterAttribute
 {
 	public AuthorizeRoleAttribute(params UserRole.Type[] requiredRoles) : base(typeof(AuthorizeFilter))
 	{
-		Arguments = [new HashSet<UserRole.Type>(requiredRoles)];
+		Arguments = [requiredRoles];
 	}
 }
 
-public class AuthorizeFilter(AuthService authService, HashSet<UserRole.Type>? requiredRoles = null) : IAsyncActionFilter
+public class AuthorizeFilter(AuthService authService, UserRole.Type[]? requiredRoles = default) : IAsyncActionFilter
 {
 	public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
 	{
 		if (requiredRoles == null) return;
 		try
 		{
-			var (status, _,_) = await authService.Authorize(context.HttpContext, requiredRoles);
+			var (status, _, _) = await authService.Authorize(context.HttpContext, requiredRoles);
 			if (status != HttpStatusCode.OK)
 			{
 				context.Result = new UnauthorizedObjectResult(new Response<string>(status,

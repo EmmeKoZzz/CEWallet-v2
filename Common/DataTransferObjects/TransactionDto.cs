@@ -4,7 +4,6 @@ using Common.DataTransferObjects.ApiResponses;
 namespace Common.DataTransferObjects;
 
 public record TransactionDto(
-	[property: Required] Guid Source,
-	[property: Required] Guid Currency,
-	[property: Required, Range(0, double.MaxValue)]
-	double Amount);
+	[Required] Guid Source,
+	[Required] Guid Currency,
+	[Required, Range(0, double.MaxValue)] double Amount);

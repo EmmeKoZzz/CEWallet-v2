@@ -32,8 +32,8 @@ namespace ApiServices.Migrations
 
                     b.Property<string>("Activity")
                         .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
                     b.Property<double>("Amount")
                         .HasColumnType("double");
@@ -77,6 +77,9 @@ namespace ApiServices.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("char(36)");
+
+                    b.Property<bool>("Active")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -179,17 +182,17 @@ namespace ApiServices.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("d802f83c-c2d9-49a6-bbd1-23432ae65dd2"),
+                            Id = new Guid("853a4901-542c-4ee7-8cd0-7c2b0064ea00"),
                             Name = "Asesor"
                         },
                         new
                         {
-                            Id = new Guid("8ea8915b-1a5c-453f-88f1-7f19332bf2a3"),
+                            Id = new Guid("4a2cfbcc-dcd9-43f8-8414-b9e8a5b49385"),
                             Name = "Supervisor"
                         },
                         new
                         {
-                            Id = new Guid("192587e5-6ff3-4dff-b91a-9b455e5a3496"),
+                            Id = new Guid("de9c8d25-8493-4a2b-ac24-a54c566cb76a"),
                             Name = "Administrador"
                         });
                 });
@@ -250,14 +253,14 @@ namespace ApiServices.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("344ea41f-7f4a-463a-84fa-772dcd80691f"),
+                            Id = new Guid("e20c96e2-dac7-4eca-ab7a-aa533da10380"),
                             Active = true,
-                            CreatedAt = new DateTime(2024, 9, 24, 13, 44, 17, 526, DateTimeKind.Utc).AddTicks(1718),
+                            CreatedAt = new DateTime(2024, 9, 26, 1, 40, 51, 762, DateTimeKind.Utc).AddTicks(85),
                             Email = "admin@cewallet.org",
-                            PasswordHash = new byte[] { 162, 81, 34, 221, 92, 206, 79, 167, 134, 115, 83, 194, 66, 139, 164, 187, 255, 204, 162, 102, 88, 109, 102, 218, 244, 84, 55, 196, 202, 92, 76, 57 },
-                            PasswordSalt = new byte[] { 96, 195, 183, 47, 11, 77, 20, 94, 173, 98, 24, 57, 199, 251, 203, 232 },
-                            RoleId = new Guid("192587e5-6ff3-4dff-b91a-9b455e5a3496"),
-                            UpdatedAt = new DateTime(2024, 9, 24, 13, 44, 17, 526, DateTimeKind.Utc).AddTicks(1718),
+                            PasswordHash = new byte[] { 55, 43, 241, 231, 50, 126, 150, 155, 200, 163, 206, 12, 58, 100, 44, 253, 83, 54, 247, 160, 218, 11, 28, 148, 3, 72, 174, 189, 239, 159, 4, 18 },
+                            PasswordSalt = new byte[] { 141, 159, 219, 189, 24, 247, 197, 109, 186, 86, 78, 156, 51, 84, 88, 26 },
+                            RoleId = new Guid("de9c8d25-8493-4a2b-ac24-a54c566cb76a"),
+                            UpdatedAt = new DateTime(2024, 9, 26, 1, 40, 51, 762, DateTimeKind.Utc).AddTicks(84),
                             Username = "admin"
                         });
                 });

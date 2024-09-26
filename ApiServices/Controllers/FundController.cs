@@ -145,18 +145,17 @@ public class FundController(FundService funds) : ControllerBase
 	}
 
 	/// <summary> Withdraws funds from a specified account. </summary>
-	/// <param name="id">The ID of the account to withdraw from.</param>
 	/// <param name="info">The withdrawal information.</param>
 	/// <response code="200">Successful withdrawal.</response>
 	/// <response code="400">Invalid withdrawal request.</response>
 	/// <response code="404">Account not found.</response>
-	[HttpPost("{id:guid}/withdrawal")]
+	[HttpPost("withdrawal")]
 	[AuthorizeRole]
-	public async Task<ActionResult<Response<FundDto>>> Withdraw([FromRoute] Guid id, TransactionDto info)
+	public async Task<ActionResult<Response<FundDto>>> Withdraw([FromBody] TransactionDto info)
 	{
 		try
 		{
-			var res = await funds.Withdraw(id, info);
+			var res = await funds.Withdraw(info);
 			return res.Status switch
 			{
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message),
@@ -171,18 +170,17 @@ public class FundController(FundService funds) : ControllerBase
 	}
 
 	/// <summary>Deposits funds into a specified account.</summary>
-	/// <param name="id">The ID of the account to deposit into.</param>
 	/// <param name="info">The deposit information.</param>
 	/// <response code="200">Successful deposit.</response>
 	/// <response code="400">Invalid deposit request.</response>
 	/// <response code="404">Account not found.</response>
-	[HttpPost("{id:guid}/deposit")]
+	[HttpPost("deposit")]
 	[AuthorizeRole(UserRole.Type.Administrator)]
-	public async Task<ActionResult<Response<FundDto>>> Deposit([FromRoute] Guid id, TransferDto info)
+	public async Task<ActionResult<Response<FundDto>>> Deposit([FromBody] TransferDto info)
 	{
 		try
 		{
-			var res = await funds.Deposit(id, info);
+			var res = await funds.Deposit(info);
 			return res.Status switch
 			{
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message),
@@ -196,13 +194,19 @@ public class FundController(FundService funds) : ControllerBase
 		}
 	}
 
-	[HttpPatch("{fundId:guid}/attach-user/{userid:guid}")]
+	/// <summary>Attaches a user to a specified fund.</summary>
+	/// <param name="fundId">The ID of the fund.</param>
+	/// <param name="userId">The ID of the user.</param>
+	/// <returns>A response indicating the result of the attachment.</returns>
+	/// <response code="200">User attached successfully.</response>
+	/// <response code="404">Fund or user not found.</response>
+	[HttpPatch("attach-user/{fundId:guid}/{userId:guid}")]
 	[AuthorizeRole(UserRole.Type.Administrator)]
-	public async Task<ActionResult<Response<object>>> AddUser(Guid fundId, Guid userid)
+	public async Task<ActionResult<Response<object>>> AddUser(Guid fundId, Guid userId)
 	{
 		try
 		{
-			var res = await funds.AttachUser(userid, fundId);
+			var res = await funds.AttachUser(userId, fundId);
 			return res.Status switch
 			{
 				HttpStatusCode.OK => this.CustomOk(res.Value),

@@ -5,7 +5,7 @@ namespace Common.DataTransferObjects;
 
 public record TransferDto(
 	Guid Source,
-	[property: Required] Guid Destination,
+	[Required] Guid Destination,
 	Guid Currency,
 	double Amount) : TransactionDto(Source, Currency, Amount)
 {
