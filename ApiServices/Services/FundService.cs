@@ -56,7 +56,8 @@ public class FundService(AppDbContext dbContext)
 	/// <returns>A FundDto object representing the newly created fund.</returns>
 	public async Task<FundDto> Add(AddFundDto info)
 	{
-		var fund = new Fund { Name = info.Name, LocationUrl = info.LocationUrl };
+		var fund = new Fund
+			{ Name = info.Name, LocationUrl = info.LocationUrl, Address = info.Address, Details = info.Details };
 		await dbContext.Funds.AddAsync(fund);
 		await dbContext.SaveChangesAsync();
 		return CreateFundDto(fund);
@@ -74,6 +75,8 @@ public class FundService(AppDbContext dbContext)
 
 		fund.Name = info.Name;
 		fund.LocationUrl = info.LocationUrl;
+		fund.Address = info.Address;
+		fund.Details = info.Details;
 		await dbContext.SaveChangesAsync();
 
 		return new ServiceFlag<FundDto>(OK, CreateFundDto(fund));
@@ -306,10 +309,12 @@ public class FundService(AppDbContext dbContext)
 		fund.Id,
 		fund.Name,
 		fund.CreatedAt,
+		LocationUrl: fund.LocationUrl,
+		Address: fund.Address,
+		Details: fund.Details,
 		Currencies: fund.FundCurrencies is not null
 			? fund.FundCurrencies.Select(c => new FundDto.FundCurrency(c.Currency.Name, c.Amount))
 			: default,
-		LocationUrl: fund.LocationUrl,
 		User: fund.User is not null
 			? new UserDto(
 				fund.User.Id,

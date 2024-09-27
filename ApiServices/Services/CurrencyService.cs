@@ -98,7 +98,7 @@ public class CurrencyService(AppDbContext dbContext)
 				return new ServiceFlag<CurrencyDto>(BadRequest, Message: "Currency already exists.");
 			// If the currency does not exist, create a new Currency entity.  
 			default:
-				currency = new Currency { Name = info.Name, ValueUrl = info.UrlValue };
+				currency = new Currency { Name = info.Name };
 				await dbContext.Currencies.AddAsync(currency);
 				break;
 		}
@@ -122,7 +122,6 @@ public class CurrencyService(AppDbContext dbContext)
 
 		// Update the currency's properties with the provided info.  
 		currency.Name = info.Name;
-		currency.ValueUrl = info.UrlValue;
 
 		// Save the changes to the database.  
 		await dbContext.SaveChangesAsync();
@@ -190,10 +189,12 @@ public class CurrencyService(AppDbContext dbContext)
 		if (funds)
 		{
 			dto.Funds = entity.FundCurrencies.Select(currencies => new FundDto(
-				currencies.FundId, // Set the Fund ID from the FundCurrencies.  
-				currencies.Fund.Name, // Set the name of the associated Fund.  
-				currencies.Fund.CreatedAt, // Set the creation date of the Fund.  
-				currencies.Fund.LocationUrl, // Set the location URL of the Fund.  
+				currencies.FundId,
+				currencies.Fund.Name,
+				currencies.Fund.CreatedAt,
+				currencies.Fund.LocationUrl,
+				currencies.Fund.Address,
+				currencies.Fund.Details,
 				currencies.Fund.FundCurrencies.Select(currency =>
 					new FundDto.FundCurrency(currency.Currency.Name, currency.Amount)) // Map FundCurrency information.  
 			)).ToList(); // Materialize the collection to avoid multiple enumerations later.  
