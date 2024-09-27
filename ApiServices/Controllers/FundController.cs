@@ -13,7 +13,7 @@ namespace ApiServices.Controllers;
 [Route("/fund")]
 public class FundController(FundService funds) : ControllerBase
 {
-	/// <summary> Retrieves all funds. </summary>
+	/// <summary> Retrieves all funds. Only administrators and Supervisors are allowed to perform this action.</summary>
 	/// <response code="200">Successful retrieval of funds.</response>
 	/// <response code="401">Unauthorized access.</response>
 	[HttpGet]
@@ -72,7 +72,7 @@ public class FundController(FundService funds) : ControllerBase
 		}
 	}
 
-	/// <summary> Adds a new fund. </summary>
+	/// <summary> Adds a new fund. Only administrators are allowed to perform this action.</summary>
 	/// <param name="info">The information for the new fund.</param>
 	/// <response code="200">Successful addition of the fund.</response>
 	/// <response code="400">Invalid fund information.</response>
@@ -91,7 +91,7 @@ public class FundController(FundService funds) : ControllerBase
 		}
 	}
 
-	/// <summary> Updates an existing fund. </summary>
+	/// <summary> Updates an existing fund. Only administrators are allowed to perform this action.</summary>
 	/// <param name="info">The updated information for the fund.</param>
 	/// <param name="id">The ID of the fund to update.</param>
 	/// <response code="200">Successful update of the fund.</response>
@@ -118,7 +118,7 @@ public class FundController(FundService funds) : ControllerBase
 	}
 
 	// TODO add optional notes in the request data
-	/// <summary> Transfers funds between accounts. </summary>
+	/// <summary> Transfers funds between accounts. Only administrators and Supervisors are allowed to perform this action.</summary>
 	/// <param name="info">The transfer request details, including source and destination accounts, amount, and optional notes.</param>
 	/// <response code="200">The transfer was successful.</response>
 	/// <response code="400">The transfer request is invalid or missing required fields.</response>
@@ -148,6 +148,7 @@ public class FundController(FundService funds) : ControllerBase
 	/// <param name="info">The withdrawal information.</param>
 	/// <response code="200">Successful withdrawal.</response>
 	/// <response code="400">Invalid withdrawal request.</response>
+	/// <response code="401">The user is not authorized to perform this action.</response>
 	/// <response code="404">Account not found.</response>
 	[HttpPost("withdrawal")]
 	[AuthorizeRole]
@@ -169,10 +170,11 @@ public class FundController(FundService funds) : ControllerBase
 		}
 	}
 
-	/// <summary>Deposits funds into a specified account.</summary>
+	/// <summary>Deposits funds into a specified account. Only administrators are allowed to perform this action.</summary>
 	/// <param name="info">The deposit information.</param>
 	/// <response code="200">Successful deposit.</response>
 	/// <response code="400">Invalid deposit request.</response>
+	/// <response code="401">The user is not authorized to perform this action.</response>
 	/// <response code="404">Account not found.</response>
 	[HttpPost("deposit")]
 	[AuthorizeRole(UserRole.Type.Administrator)]
@@ -194,11 +196,11 @@ public class FundController(FundService funds) : ControllerBase
 		}
 	}
 
-	/// <summary>Attaches a user to a specified fund.</summary>
+	/// <summary>Attaches a user to a specified fund. Only administrators are allowed to perform this action.</summary>
 	/// <param name="fundId">The ID of the fund.</param>
 	/// <param name="userId">The ID of the user.</param>
-	/// <returns>A response indicating the result of the attachment.</returns>
 	/// <response code="200">User attached successfully.</response>
+	/// <response code="401">The user is not authorized to perform this action.</response>
 	/// <response code="404">Fund or user not found.</response>
 	[HttpPatch("attach-user/{fundId:guid}/{userId:guid}")]
 	[AuthorizeRole(UserRole.Type.Administrator)]
@@ -219,10 +221,31 @@ public class FundController(FundService funds) : ControllerBase
 		}
 	}
 
+	/// <summary>Deletes a fund by its unique identifier. Only administrators are allowed to perform this action.</summary>  
+	/// <param name="id">The unique identifier of the fund to be deleted.</param>  
+	/// <response code="200">The fund is successfully deleted.</response>  
+	/// <response code="401">The user is not authorized to perform this action.</response>
+	/// <response code="404">No fund is found with the specified identifier.</response>  
 	[HttpDelete("{id:guid}")]
 	[AuthorizeRole(UserRole.Type.Administrator)]
 	public async Task<ActionResult<Response<object>>> Delete([FromRoute] Guid id)
 	{
-		throw new NotImplementedException();
+		try
+		{
+			// Call the delete method from the funds service  
+			var res = await funds.Delete(id);
+
+			// Return the appropriate response based on the operation result  
+			return res.Status switch
+			{
+				HttpStatusCode.OK => this.CustomOk(res.Value), // Return 200 OK  
+				HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message) // Return 404 Not Found  
+			};
+		}
+		catch (Exception e)
+		{
+			// Handle any unexpected exceptions and return 500 Internal Server Error  
+			return this.InternalError(e.Message);
+		}
 	}
 }

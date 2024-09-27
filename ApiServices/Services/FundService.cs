@@ -29,7 +29,7 @@ public class FundService(AppDbContext dbContext)
 			.ThenInclude(entity => entity!.Role)
 			.Include(fund => fund.FundCurrencies)
 			.ThenInclude(fundCurrency => fundCurrency.Currency)
-			.SingleOrDefaultAsync(entity => entity.Id == id);
+			.SingleOrDefaultAsync(entity => entity.Active && entity.Id == id);
 
 		return res != null
 			? new ServiceFlag<FundDto>(OK, CreateFundDto(res))
@@ -43,7 +43,7 @@ public class FundService(AppDbContext dbContext)
 	public async Task<IEnumerable<FundDto>> GetByUser(Guid id)
 	{
 		var res = await dbContext.Funds
-			.Where(entity => entity.UserId == id)
+			.Where(entity => entity.Active && entity.UserId == id)
 			.Include(entity => entity.FundCurrencies)
 			.ThenInclude(entity => entity.Currency)
 			.ToArrayAsync();
@@ -167,7 +167,7 @@ public class FundService(AppDbContext dbContext)
 		var fund = await dbContext.Funds
 			.Include(entity => entity.FundCurrencies) // Include related FundCurrency entities  
 			.ThenInclude(fundCurrency => fundCurrency.Currency) // Include the Currency details for each FundCurrency  
-			.SingleOrDefaultAsync(entity => entity.Id == info.Source); // Search for the fund by ID  
+			.SingleOrDefaultAsync(entity => entity.Active && entity.Id == info.Source); // Search for the fund by ID  
 
 		// Check if the fund was found; if not, return a not found response.  
 		if (fund == null) return new ServiceFlag<FundDto>(NotFound, Message: "Fund not found.");
@@ -182,7 +182,8 @@ public class FundService(AppDbContext dbContext)
 		}
 
 		// Deduct the withdrawal amount from the fund's currency.  
-		currency.Amount -= info.Amount;
+		if (currency.Amount - info.Amount is 0) dbContext.FundCurrencies.Remove(currency);
+		else currency.Amount -= info.Amount;
 
 		// Save the changes to the database asynchronously.  
 		await dbContext.SaveChangesAsync();
@@ -203,7 +204,7 @@ public class FundService(AppDbContext dbContext)
 		var fund = await dbContext.Funds
 			.Include(entity => entity.FundCurrencies) // Include related FundCurrency entities  
 			.ThenInclude(fundCurrency => fundCurrency.Currency) // Include the Currency details for each FundCurrency  
-			.SingleOrDefaultAsync(entity => entity.Id == info.Source); // Search for the fund by ID  
+			.SingleOrDefaultAsync(entity => entity.Active && entity.Id == info.Source); // Search for the fund by ID  
 
 		// Check if the fund was found; if not, return a not found response.  
 		if (fund == null)
@@ -248,9 +249,8 @@ public class FundService(AppDbContext dbContext)
 	public async Task<ServiceFlag<FundDto>> AttachUser(Guid userId, Guid fundId)
 	{
 		// Start asynchronous tasks to retrieve both the fund and the user concurrently.  
-		var fundTask = dbContext.Funds.FindAsync(fundId).AsTask(); // Asynchronously find the fund by its ID.  
-		var userTask = dbContext.Users.Include(entity => entity.Role) // Include user's role details  
-			.SingleOrDefaultAsync(entity => entity.Id == userId); // Asynchronously find the user by ID.  
+		var fundTask = dbContext.Funds.SingleOrDefaultAsync(entity => entity.Active && entity.Id == fundId);
+		var userTask = dbContext.Users.Include(entity => entity.Role).SingleOrDefaultAsync(entity => entity.Id == userId);
 
 		// Wait for both tasks to complete.  
 		await Task.WhenAll(fundTask, userTask);
@@ -272,6 +272,35 @@ public class FundService(AppDbContext dbContext)
 		return new ServiceFlag<FundDto>(OK, CreateFundDto(fund));
 	}
 
+	/// <summary>Marks a fund as inactive (deletes it logically) and removes associated FundCurrency entries.</summary>  
+	/// <param name="id">The unique identifier of the fund to be deleted.</param>  
+	/// <returns>A ServiceFlag containing the result of the delete operation,   
+	/// including the FundDto if successful or a not found message if unsuccessful.</returns>  
+	public async Task<ServiceFlag<FundDto>> Delete(Guid id)
+	{
+		// Retrieve the fund from the database if it exists and is active.  
+		var fund = await dbContext.Funds
+			.SingleOrDefaultAsync(entity => entity.Active && entity.Id == id);
+
+		// If the fund is not found, return a not found response.  
+		if (fund is null)
+			return new ServiceFlag<FundDto>(NotFound, Message: "Fund not found.");
+
+		// Mark the fund as inactive (soft delete).  
+		fund.Active = false;
+
+		// Remove all associated FundCurrencies for this fund.  
+		dbContext.FundCurrencies.RemoveRange(
+			dbContext.FundCurrencies.Where(entity => entity.FundId == id)
+		);
+
+		// Save all changes to the database asynchronously.  
+		await dbContext.SaveChangesAsync();
+
+		// Return a successful response containing the deleted fund's details.  
+		return new ServiceFlag<FundDto>(OK, CreateFundDto(fund));
+	}
+
 	/*
 	 * PRIVATE
 	 */
@@ -281,9 +310,11 @@ public class FundService(AppDbContext dbContext)
 		fund.Id,
 		fund.Name,
 		fund.CreatedAt,
-		Currencies: fund.FundCurrencies.Select(c => new FundDto.FundCurrency(c.Currency.Name, c.Amount)),
+		Currencies: fund.FundCurrencies is not null
+			? fund.FundCurrencies.Select(c => new FundDto.FundCurrency(c.Currency.Name, c.Amount))
+			: default,
 		LocationUrl: fund.LocationUrl,
-		User: fund.User != null
+		User: fund.User is not null
 			? new UserDto(
 				fund.User.Id,
 				fund.User.Username,
