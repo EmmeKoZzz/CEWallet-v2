@@ -84,25 +84,20 @@ public class FundService(AppDbContext dbContext)
 	/// <returns>A ServiceFlag containing the result of the transfer operation, including success or error information.</returns>  
 	public async Task<ServiceFlag<TransferDto.Response>> Transfer(TransferDto info)
 	{
+		if (info.Destination == info.Source)
+			return new ServiceFlag<TransferDto.Response>(BadRequest, Message: "Destination is the same Source.");
 		// Prepare a query to fetch funds with associated currencies from the database.  
 		var query = dbContext.Funds.Include(entity => entity.FundCurrencies).ThenInclude(entity => entity.Currency);
 
 		// Initiate asynchronous tasks to fetch the source and destination funds.  
-		var (fromFundTask, toFundTask) =
-			(query.SingleOrDefaultAsync(entity => entity.Id == info.Source),
-				query.SingleOrDefaultAsync(entity => entity.Id == info.Destination));
-
-		// Wait for both tasks to complete.  
-		await Task.WhenAll(fromFundTask, toFundTask);
-
-		// Retrieve both funds after the tasks have completed.  
-		var (fromFund, toFund) = (await fromFundTask, await toFundTask);
+		var (fromFund, toFund) =
+			(await query.SingleOrDefaultAsync(entity => entity.Active && entity.Id == info.Source),
+				await query.SingleOrDefaultAsync(entity => entity.Active && entity.Id == info.Destination));
 
 		// Check if either fund was not found and return a not found response if so.  
 		if (fromFund == null || toFund == null)
 			return new ServiceFlag<TransferDto.Response>(NotFound,
 				Message: $"Fund with ID: {(fromFund == null ? info.Source : info.Destination)} not found.");
-
 
 		// Check if the source fund has the specified currency and sufficient amount for the transfer.  
 		var fromFundCurrency =
@@ -287,6 +282,7 @@ public class FundService(AppDbContext dbContext)
 			return new ServiceFlag<FundDto>(NotFound, Message: "Fund not found.");
 
 		// Mark the fund as inactive (soft delete).  
+		fund.Name += $" - Deleted --{DateTime.Now}--";
 		fund.Active = false;
 
 		// Remove all associated FundCurrencies for this fund.  

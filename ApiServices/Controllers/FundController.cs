@@ -178,7 +178,7 @@ public class FundController(FundService funds) : ControllerBase
 	/// <response code="404">Account not found.</response>
 	[HttpPost("deposit")]
 	[AuthorizeRole(UserRole.Type.Administrator)]
-	public async Task<ActionResult<Response<FundDto>>> Deposit([FromBody] TransferDto info)
+	public async Task<ActionResult<Response<FundDto>>> Deposit([FromBody] TransactionDto info)
 	{
 		try
 		{
