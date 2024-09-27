@@ -20,7 +20,6 @@ public class AuthService(
 	UserService userService)
 {
 	// TODO: queda hacer un esquema para guardar las sessions con el token de refresco
-
 	/// Generates a JSON Web Token (JWT) based on the provided configuration and identity claims.
 	private string GenerateToken(ClaimsIdentity identity)
 	{
@@ -34,7 +33,7 @@ public class AuthService(
 				"JWT configuration values (JWT_SECRET, JWT_ISSUER, JWT_AUDIENCE) are missing or empty.");
 		}
 
-		var tokenExpirationTime = DateTime.UtcNow.AddMinutes(30); // Adjust based on your security requirements
+		var tokenExpirationTime = DateTime.UtcNow.AddMinutes(60); // Adjust based on your security requirements
 
 		var tokenHandler = new JwtSecurityTokenHandler();
 		var secureKey =

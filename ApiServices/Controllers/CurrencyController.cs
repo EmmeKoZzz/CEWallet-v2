@@ -24,8 +24,7 @@ public class CurrencyController(CurrencyService currency) : ControllerBase
 	{
 		try
 		{
-			var currencies = await currency.GetAll(funds);
-			return this.CustomOk(currencies);
+			return this.CustomOk(await currency.GetAll(funds));
 		}
 		catch (Exception e)
 		{
@@ -99,6 +98,21 @@ public class CurrencyController(CurrencyService currency) : ControllerBase
 				HttpStatusCode.NotFound => this.CustomNotFound("Currency not found."),
 				HttpStatusCode.InternalServerError => this.InternalError(message)
 			};
+		}
+		catch (Exception e)
+		{
+			return this.InternalError(e.Message);
+		}
+	}
+
+	/// <summary>Gets the informal foreign exchange rates.</summary>
+	/// <response code="200">Returns a list of informal foreign exchange rates.</response>
+	[HttpGet("informal-foreign-exchange")]
+	public async Task<IActionResult> Test()
+	{
+		try
+		{
+			return this.CustomOk(await CurrencyService.InformalForeignExchange());
 		}
 		catch (Exception e)
 		{
