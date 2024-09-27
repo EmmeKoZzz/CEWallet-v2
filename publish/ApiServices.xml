@@ -162,100 +162,16 @@
             <response code="401"> Unauthorized (user attempting to access without administrator privileges). </response>
             <response code="404"> User not found. </response>
         </member>
-        <member name="T:ApiServices.Migrations.initial">
+        <member name="T:ApiServices.Migrations.init">
             <inheritdoc />
         </member>
-        <member name="M:ApiServices.Migrations.initial.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+        <member name="M:ApiServices.Migrations.init.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
             <inheritdoc />
         </member>
-        <member name="M:ApiServices.Migrations.initial.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+        <member name="M:ApiServices.Migrations.init.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
             <inheritdoc />
         </member>
-        <member name="M:ApiServices.Migrations.initial.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="T:ApiServices.Migrations.optimize_columns">
-            <inheritdoc />
-        </member>
-        <member name="M:ApiServices.Migrations.optimize_columns.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="M:ApiServices.Migrations.optimize_columns.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="M:ApiServices.Migrations.optimize_columns.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="T:ApiServices.Migrations.add_admin">
-            <inheritdoc />
-        </member>
-        <member name="M:ApiServices.Migrations.add_admin.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="M:ApiServices.Migrations.add_admin.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="M:ApiServices.Migrations.add_admin.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="T:ApiServices.Migrations.newData">
-            <inheritdoc />
-        </member>
-        <member name="M:ApiServices.Migrations.newData.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="M:ApiServices.Migrations.newData.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="M:ApiServices.Migrations.newData.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="T:ApiServices.Migrations.update">
-            <inheritdoc />
-        </member>
-        <member name="M:ApiServices.Migrations.update.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="M:ApiServices.Migrations.update.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="M:ApiServices.Migrations.update.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="T:ApiServices.Migrations.fix_relationshipUserFund">
-            <inheritdoc />
-        </member>
-        <member name="M:ApiServices.Migrations.fix_relationshipUserFund.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="M:ApiServices.Migrations.fix_relationshipUserFund.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="M:ApiServices.Migrations.fix_relationshipUserFund.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="T:ApiServices.Migrations.update_currency_addActiveColumn">
-            <inheritdoc />
-        </member>
-        <member name="M:ApiServices.Migrations.update_currency_addActiveColumn.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="M:ApiServices.Migrations.update_currency_addActiveColumn.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="M:ApiServices.Migrations.update_currency_addActiveColumn.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="T:ApiServices.Migrations.update_0">
-            <inheritdoc />
-        </member>
-        <member name="M:ApiServices.Migrations.update_0.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="M:ApiServices.Migrations.update_0.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
-            <inheritdoc />
-        </member>
-        <member name="M:ApiServices.Migrations.update_0.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+        <member name="M:ApiServices.Migrations.init.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
             <inheritdoc />
         </member>
         <member name="M:ApiServices.Services.AuthService.GenerateToken(System.Security.Claims.ClaimsIdentity)">
