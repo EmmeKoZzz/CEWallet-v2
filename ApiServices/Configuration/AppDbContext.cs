@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ApiServices.Configuration;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options, IConfiguration configuration) : DbContext(options)
+public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
 	public virtual DbSet<ActivityLog> ActivityLogs { get; set; }
 	public virtual DbSet<Currency> Currencies { get; set; }
@@ -12,12 +12,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, IConfiguration
 	public virtual DbSet<FundCurrency> FundCurrencies { get; set; }
 	public virtual DbSet<Role> Roles { get; set; }
 	public virtual DbSet<User> Users { get; set; }
-
-	protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-	{
-		var dbConnection = configuration.GetConnectionString("DefaultConnection") ?? "";
-		optionsBuilder.UseMySql(dbConnection, ServerVersion.AutoDetect(dbConnection));
-	}
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder)
 	{

@@ -52,7 +52,10 @@ services.AddSwaggerGen(c =>
 
 
 // Add DbContext for database access
-services.AddDbContext<AppDbContext>();
+
+var dbConnection =
+	builder.Configuration.GetConnectionString(builder.Environment.IsDevelopment() ? "Development" : "Production")!;
+services.AddDbContext<AppDbContext>(o => o.UseMySql(dbConnection, ServerVersion.AutoDetect(dbConnection)));
 
 // Configure CORS (Cross-Origin Resource Sharing) based on the environment
 var origin = "*";
