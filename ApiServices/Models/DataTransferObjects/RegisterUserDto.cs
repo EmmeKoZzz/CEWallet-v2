@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
-using Common.Constants;
 
-namespace Common.DataTransferObjects;
+namespace ApiServices.Models.DataTransferObjects;
 
 public record RegisterUserDto
 {

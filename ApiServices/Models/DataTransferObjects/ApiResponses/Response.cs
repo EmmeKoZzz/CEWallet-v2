@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace Common.DataTransferObjects.ApiResponses;
+namespace ApiServices.Models.DataTransferObjects.ApiResponses;
 
 public record Response<T>(
 	HttpStatusCode Status,

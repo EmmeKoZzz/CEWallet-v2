@@ -1,7 +1,7 @@
 using System.Net;
+using ApiServices.Models.Constants;
+using ApiServices.Models.DataTransferObjects.ApiResponses;
 using ApiServices.Services;
-using Common.Constants;
-using Common.DataTransferObjects.ApiResponses;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 

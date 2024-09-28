@@ -1,9 +1,9 @@
 ﻿using System.Net;
 using ApiServices.Decorators;
 using ApiServices.Helpers;
+using ApiServices.Models.Constants;
+using ApiServices.Models.DataTransferObjects.ApiResponses;
 using ApiServices.Services;
-using Common.Constants;
-using Common.DataTransferObjects.ApiResponses;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ApiServices.Controllers;

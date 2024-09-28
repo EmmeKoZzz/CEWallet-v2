@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Common.DataTransferObjects;
+namespace ApiServices.Models.DataTransferObjects;
 
 public record LoginUserDto(
 	[Required, MinLength(2)] string UserName,

@@ -2,7 +2,7 @@
 using ApiServices.Configuration;
 using ApiServices.Helpers;
 using ApiServices.Models;
-using Common.DataTransferObjects;
+using ApiServices.Models.DataTransferObjects;
 using Microsoft.EntityFrameworkCore;
 
 namespace ApiServices.Services;

@@ -5,9 +5,9 @@ using System.Text;
 using ApiServices.Configuration;
 using ApiServices.Helpers;
 using ApiServices.Models;
-using Common.Constants;
-using Common.DataTransferObjects;
-using Common.DataTransferObjects.ApiResponses;
+using ApiServices.Models.Constants;
+using ApiServices.Models.DataTransferObjects;
+using ApiServices.Models.DataTransferObjects.ApiResponses;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 

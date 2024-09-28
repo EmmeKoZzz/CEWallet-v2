@@ -1,5 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Common.DataTransferObjects;
+namespace ApiServices.Models.DataTransferObjects;
 
 public record AddCurrencyDto([Required] string Name);

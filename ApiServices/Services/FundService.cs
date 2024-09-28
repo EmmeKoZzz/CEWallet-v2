@@ -1,8 +1,8 @@
 using ApiServices.Configuration;
 using ApiServices.Helpers;
 using ApiServices.Models;
-using Common.DataTransferObjects;
-using Common.DataTransferObjects.ApiResponses;
+using ApiServices.Models.DataTransferObjects;
+using ApiServices.Models.DataTransferObjects.ApiResponses;
 using Microsoft.EntityFrameworkCore;
 using static System.Net.HttpStatusCode;
 

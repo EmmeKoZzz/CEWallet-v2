@@ -1,14 +1,12 @@
-namespace Common.Constants;
+namespace ApiServices.Models.Constants;
 
-public struct FundActivity
+public struct FundTransaction
 {
 	public enum Type
 	{
 		Deposit,
 		Withdrawal,
-		Transfer,
-		CreateFund,
-		DeleteFund
+		Transfer
 	}
 
 	public static string Value(Type type) => type switch
@@ -16,8 +14,6 @@ public struct FundActivity
 		Type.Deposit => "Depósito",
 		Type.Withdrawal => "Egreso",
 		Type.Transfer => "Transferencia",
-		Type.CreateFund => "Creación de un Fondo",
-		Type.DeleteFund => "Eliminación de un Fondo",
 		_ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
 	};
 }

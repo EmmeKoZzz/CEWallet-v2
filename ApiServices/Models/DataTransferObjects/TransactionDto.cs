@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
-using Common.DataTransferObjects.ApiResponses;
 
-namespace Common.DataTransferObjects;
+namespace ApiServices.Models.DataTransferObjects;
 
 public record TransactionDto(
 	[Required] Guid Source,

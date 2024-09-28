@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
-using Common.DataTransferObjects.ApiResponses;
+using ApiServices.Models.DataTransferObjects.ApiResponses;
 
-namespace Common.DataTransferObjects;
+namespace ApiServices.Models.DataTransferObjects;
 
 public record TransferDto(
 	Guid Source,

@@ -1,5 +1,5 @@
 ﻿using ApiServices.Models;
-using Common.Constants;
+using ApiServices.Models.Constants;
 using Microsoft.EntityFrameworkCore;
 
 namespace ApiServices.Configuration;

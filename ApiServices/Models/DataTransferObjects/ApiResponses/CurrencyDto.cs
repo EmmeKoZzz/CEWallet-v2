@@ -1,4 +1,4 @@
-namespace Common.DataTransferObjects.ApiResponses;
+namespace ApiServices.Models.DataTransferObjects.ApiResponses;
 
 public record CurrencyDto
 {
