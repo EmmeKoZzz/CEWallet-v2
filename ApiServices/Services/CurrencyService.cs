@@ -7,10 +7,10 @@ using ApiServices.Models.DataTransferObjects.ApiResponses;
 using Microsoft.EntityFrameworkCore;
 using static System.Net.HttpStatusCode;
 
-
 namespace ApiServices.Services;
 
 public class CurrencyService(AppDbContext dbContext) {
+	
 	/// <summary>Retrieves informal foreign exchange rates from a public website (eltoque.com).</summary>
 	/// <returns>A dictionary containing informal foreign exchange rates.</returns>
 	public static async Task<Dictionary<string, float>> InformalForeignExchange() {
@@ -24,6 +24,7 @@ public class CurrencyService(AppDbContext dbContext) {
 		// Define the CSS selector for table rows containing currency data
 		const string selector =
 			"#super-page-wrapper > div:nth-child(5) > div > div > div.sc-540929e5-0.fQaxen > div.content > table > tbody tr";
+		
 		var rows = document.QuerySelectorAll(selector);
 		
 		// Initialize dictionary to store currency data
@@ -43,8 +44,7 @@ public class CurrencyService(AppDbContext dbContext) {
 			
 			// Extract price text and convert to float
 			var priceText = priceElement.TextContent.Trim();
-			if (float.TryParse(priceText.Split(' ')[0],
-				    out var price)) { currencyData[currency] = price; }
+			if (float.TryParse(priceText.Split(' ')[0], out var price)) { currencyData[currency] = price; }
 		}
 		
 		// Return the dictionary containing informal foreign exchange rates
@@ -60,12 +60,9 @@ public class CurrencyService(AppDbContext dbContext) {
 		
 		// If the 'funds' parameter is true, include related fund data in the query.  
 		if (funds) {
-			query = query.Include(e => e.FundCurrencies) // Include FundCurrencies related to Currencies.  
-				.
-				ThenInclude(fc => fc.Fund) // Include the Fund related to each FundCurrency.  
-				.
-				ThenInclude(f => f.FundCurrencies) // Include FundCurrencies related to those Funds.  
-				.
+			query = query.Include(e => e.FundCurrencies). // Include FundCurrencies related to Currencies.  
+				ThenInclude(fc => fc.Fund). // Include the Fund related to each FundCurrency.  
+				ThenInclude(f => f.FundCurrencies). // Include FundCurrencies related to those Funds.  
 				ThenInclude(fc => fc.Currency); // Include Currency related to those FundCurrencies.  
 		}
 		
@@ -73,9 +70,8 @@ public class CurrencyService(AppDbContext dbContext) {
 		var currencies = await query.ToListAsync();
 		
 		// Map the retrieved Currency entities to CurrencyDto objects.  
-		var tasks = currencies.Select(entity => MapCurrencyToDto(entity,
-			funds,
-			true));
+		var tasks = currencies.Select(entity => MapCurrencyToDto(entity, funds, true));
+		
 		return await Task.WhenAll(tasks); // Await the completion of all mapping tasks.  
 	}
 	
@@ -88,39 +84,32 @@ public class CurrencyService(AppDbContext dbContext) {
 		
 		switch (currency) {
 			// If the currency exists but is inactive, reactivate it.  
-			case {
-				Active: false
-			}:
+			case { Active: false }:
 				currency.Active = true;
+				
 				break;
 			// If the currency is already active, return a BadRequest response.  
-			case {
-				Active: true
-			}:
-				return new(BadRequest,
-					Message: "Currency already exists.");
+			case { Active: true }: return new(BadRequest, Message: "Currency already exists.");
 			// If the currency does not exist, create a new Currency entity.  
 			default:
-				currency = new() {
-					Name = info.Name
-				};
+				currency = new() { Name = info.Name };
 				await dbContext.Currencies.AddAsync(currency);
+				
 				break;
 		}
 		
 		// Save the changes to the database.  
 		await dbContext.SaveChangesAsync();
+		
 		// Return the result, including the newly added or reactivated currency.  
-		return new(OK,
-			await MapCurrencyToDto(currency));
+		return new(OK, await MapCurrencyToDto(currency));
 	}
 	
 	/// <summary>Updates an existing currency in the database.</summary>  
 	/// <param name="info">The updated currency information.</param>  
 	/// <param name="id">The unique identifier of the currency to be updated.</param>  
 	/// <returns>An asynchronous task returning a ServiceFlag containing the result of the operation.</returns>  
-	public async Task<ServiceFlag<CurrencyDto>> Update(AddCurrencyDto info,
-	Guid id) {
+	public async Task<ServiceFlag<CurrencyDto>> Update(AddCurrencyDto info, Guid id) {
 		// Find the currency by its unique identifier.  
 		var currency = await dbContext.Currencies.FindAsync(id);
 		// If the currency does not exist, return a NotFound response.  
@@ -131,9 +120,9 @@ public class CurrencyService(AppDbContext dbContext) {
 		
 		// Save the changes to the database.  
 		await dbContext.SaveChangesAsync();
+		
 		// Return the result, confirming the update was successful.  
-		return new(OK,
-			await MapCurrencyToDto(currency));
+		return new(OK, await MapCurrencyToDto(currency));
 	}
 	
 	/// <summary>  
@@ -162,13 +151,12 @@ public class CurrencyService(AppDbContext dbContext) {
 		} catch (Exception e) {
 			// If an error occurs, roll back the transaction and return an error response.  
 			await trx.RollbackAsync();
-			return new(InternalServerError,
-				Message: e.Message);
+			
+			return new(InternalServerError, Message: e.Message);
 		}
 		
 		// Return the result, indicating the deletion was successful.  
-		return new(OK,
-			await MapCurrencyToDto(currency));
+		return new(OK, await MapCurrencyToDto(currency));
 	}
 	
 	/* HELPERS... */
@@ -177,9 +165,7 @@ public class CurrencyService(AppDbContext dbContext) {
 	/// <param name="funds">A flag indicating whether to include fund information in the DTO.</param>
 	/// <param name="balance">A flag indicating whether to include total balance information in the DTO.</param>
 	/// <returns>A Task representing the asynchronous operation, containing the mapped CurrencyDto.</returns>  
-	private async Task<CurrencyDto> MapCurrencyToDto(Currency entity,
-	bool funds = false,
-	bool balance = false) {
+	private async Task<CurrencyDto> MapCurrencyToDto(Currency entity, bool funds = false, bool balance = false) {
 		// Create the CurrencyDto object and map basic properties.  
 		var dto = new CurrencyDto {
 			Currency = entity.Name, // Set the name of the currency.  
@@ -193,15 +179,19 @@ public class CurrencyService(AppDbContext dbContext) {
 		
 		// If funds information is requested, map the associated fund currencies.  
 		if (funds) {
-			dto.Funds = entity.FundCurrencies.Select(currencies => new FundDto(currencies.FundId,
-					currencies.Fund.Name,
-					currencies.Fund.CreatedAt,
-					currencies.Fund.LocationUrl,
-					currencies.Fund.Address,
-					currencies.Fund.Details,
-					currencies.Fund.FundCurrencies.Select(currency => new FundDto.FundCurrency(currency.Currency.Name,
-						currency.Amount)) // Map FundCurrency information.  
-				)).
+			dto.Funds = entity.FundCurrencies.Select(
+					currencies => new FundDto(
+						currencies.FundId,
+						currencies.Fund.Name,
+						currencies.Fund.CreatedAt,
+						currencies.Fund.LocationUrl,
+						currencies.Fund.Address,
+						currencies.Fund.Details,
+						currencies.Fund.FundCurrencies.Select(
+							currency => new FundDto.FundCurrency(currency.Currency.Name, currency.Amount)
+						) // Map FundCurrency information.  
+					)
+				).
 				ToList(); // Materialize the collection to avoid multiple enumerations later.  
 		}
 		
@@ -215,4 +205,5 @@ public class CurrencyService(AppDbContext dbContext) {
 		Where(entity => entity.CurrencyId == currency.Id) // Filter FundCurrencies by the specified currency ID.  
 		.
 		SumAsync(entity => entity.Amount);
+	
 }

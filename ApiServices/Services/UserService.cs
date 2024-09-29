@@ -5,11 +5,10 @@ using ApiServices.Models;
 using ApiServices.Models.DataTransferObjects;
 using Microsoft.EntityFrameworkCore;
 
-
 namespace ApiServices.Services;
 
-public class UserService(AppDbContext dbContext,
-	RoleService roleService) {
+public class UserService(AppDbContext dbContext, RoleService roleService) {
+	
 	/// Retrieves a list of all users.
 	public Task<User[]> GetAll(bool role = false) {
 		var query = dbContext.Users.Where(entity => entity.Active);
@@ -19,9 +18,7 @@ public class UserService(AppDbContext dbContext,
 	}
 	
 	/// Finds a user based on the provided ID, name, or email.
-	public async Task<ServiceFlag<User?>> FindBy(Guid? id = default,
-	string? name = default,
-	string? email = default) {
+	public async Task<ServiceFlag<User?>> FindBy(Guid? id = default, string? name = default, string? email = default) {
 		var query = dbContext.Users.Where(entity => entity.Active).Include(entity => entity.Role);
 		
 		User? user = default;
@@ -31,25 +28,21 @@ public class UserService(AppDbContext dbContext,
 		
 		return user == null
 			? new(HttpStatusCode.NotFound)
-			: new ServiceFlag<User?>(HttpStatusCode.OK,
-				user);
+			: new ServiceFlag<User?>(HttpStatusCode.OK, user);
 	}
 	
 	/// Updates the information of a user.
 	public async Task<ServiceFlag<User?>> UpdateUser(RegisterUserDto details) {
 		var (role, _, _) = await roleService.FindById(details.RoleId);
-		if (role != HttpStatusCode.OK) {
-			return new(HttpStatusCode.BadRequest,
-				null);
-		}
+		if (role != HttpStatusCode.OK) { return new(HttpStatusCode.BadRequest, null); }
 		
 		var (status, user, _) = await FindBy(name: details.UserName);
 		if (status != HttpStatusCode.OK) { return new(HttpStatusCode.NotFound); }
 		
 		(user!.Email, user.RoleId, user.Username) = (details.Email, details.RoleId, details.Password);
 		await dbContext.SaveChangesAsync();
-		return new(HttpStatusCode.OK,
-			user);
+		
+		return new(HttpStatusCode.OK, user);
 	}
 	
 	/// Resets the password for a specified user.
@@ -63,15 +56,14 @@ public class UserService(AppDbContext dbContext,
 		
 		user.GeneratePasswordHash(details.Password);
 		await dbContext.SaveChangesAsync();
+		
 		return HttpStatusCode.OK;
 	}
 	
 	/// Deletes a user with the specified ID.
 	public async Task<ServiceFlag<User?>> Delete(Guid id) {
 		var user = await dbContext.Users.FindAsync(id);
-		if (user is not {
-			Active: true
-		}) { return new(HttpStatusCode.NotFound); }
+		if (user is not { Active: true }) { return new(HttpStatusCode.NotFound); }
 		
 		user.Active = false;
 		
@@ -80,7 +72,8 @@ public class UserService(AppDbContext dbContext,
 		
 		await dbContext.SaveChangesAsync();
 		await dbContext.Entry(user).Reference(entity => entity.Role).LoadAsync();
-		return new(HttpStatusCode.OK,
-			user);
+		
+		return new(HttpStatusCode.OK, user);
 	}
+	
 }

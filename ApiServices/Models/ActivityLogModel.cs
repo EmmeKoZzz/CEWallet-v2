@@ -2,14 +2,12 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
-
 namespace ApiServices.Models;
 
-[Table("ActivityLog"), Index("CurrencyId",
-	 Name = "CurrencyId"), Index("FundId",
-	 Name = "FundId"), Index("UserId",
-	 Name = "UserId")]
+[Table("ActivityLog"), Index("CurrencyId", Name = "CurrencyId"), Index("FundId", Name = "FundId"),
+Index("UserId", Name = "UserId")]
 public class ActivityLog {
+	
 	[Key]
 	public Guid Id { get; set; } = Guid.NewGuid();
 	public Guid UserId { get; set; }
@@ -24,4 +22,5 @@ public class ActivityLog {
 	public string? Details { get; set; }
 	[Column(TypeName = "timestamp")]
 	public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+	
 }

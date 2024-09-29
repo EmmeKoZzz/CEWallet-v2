@@ -7,16 +7,15 @@ using ApiServices.Models.DataTransferObjects.ApiResponses;
 using ApiServices.Services;
 using Microsoft.AspNetCore.Mvc;
 
-
 namespace ApiServices.Controllers;
 
 [ApiController, Route("/fund")]
 public class FundController(FundService funds) : ControllerBase {
+	
 	/// <summary> Retrieves all funds. Only administrators and Supervisors are allowed to perform this action.</summary>
 	/// <response code="200">Successful retrieval of funds.</response>
 	/// <response code="401">Unauthorized access.</response>
-	[HttpGet, AuthorizeRole(UserRole.Type.Administrator,
-		 UserRole.Type.Supervisor)]
+	[HttpGet, AuthorizeRole(UserRole.Type.Administrator, UserRole.Type.Supervisor)]
 	public async Task<ActionResult<Response<FundDto[]>>> GetAll() {
 		try { return this.CustomOk(await funds.GetAll()); } catch (Exception e) { return this.InternalError(e.Message); }
 	}
@@ -30,6 +29,7 @@ public class FundController(FundService funds) : ControllerBase {
 	public async Task<ActionResult<Response<FundDto>>> Get([FromRoute] Guid id) {
 		try {
 			var res = await funds.Get(id);
+			
 			return res.Status switch {
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message),
 				HttpStatusCode.OK => this.CustomOk(res.Value)
@@ -66,11 +66,10 @@ public class FundController(FundService funds) : ControllerBase {
 	/// <response code="401">Unauthorized access.</response>
 	/// <response code="404">Fund not found.</response>
 	[HttpPatch("{id:guid}"), AuthorizeRole(UserRole.Type.Administrator)]
-	public async Task<ActionResult<Response<FundDto>>> Update([FromBody] AddFundDto info,
-	[FromRoute] Guid id) {
+	public async Task<ActionResult<Response<FundDto>>> Update([FromBody] AddFundDto info, [FromRoute] Guid id) {
 		try {
-			var res = await funds.Update(info,
-				id);
+			var res = await funds.Update(info, id);
+			
 			return res.Status switch {
 				HttpStatusCode.OK => this.CustomOk(res.Value),
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message)
@@ -85,11 +84,11 @@ public class FundController(FundService funds) : ControllerBase {
 	/// <response code="400">The transfer request is invalid or missing required fields.</response>
 	/// <response code="401">The user is not authorized to perform this action.</response>
 	/// <response code="404">The source or destination account does not exist.</response>
-	[HttpPost("transfer"), AuthorizeRole(UserRole.Type.Administrator,
-		 UserRole.Type.Supervisor)]
+	[HttpPost("transfer"), AuthorizeRole(UserRole.Type.Administrator, UserRole.Type.Supervisor)]
 	public async Task<ActionResult<Response<TransferDto.Response>>> Transfer([FromBody] TransferDto info) {
 		try {
 			var res = await funds.Transfer(info);
+			
 			return res.Status switch {
 				HttpStatusCode.BadRequest => this.CustomBadRequest(detail: res.Message),
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message),
@@ -108,6 +107,7 @@ public class FundController(FundService funds) : ControllerBase {
 	public async Task<ActionResult<Response<FundDto>>> Withdraw([FromBody] TransactionDto info) {
 		try {
 			var res = await funds.Withdraw(info);
+			
 			return res.Status switch {
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message),
 				HttpStatusCode.BadRequest => this.CustomBadRequest(detail: res.Message),
@@ -126,6 +126,7 @@ public class FundController(FundService funds) : ControllerBase {
 	public async Task<ActionResult<Response<FundDto>>> Deposit([FromBody] TransactionDto info) {
 		try {
 			var res = await funds.Deposit(info);
+			
 			return res.Status switch {
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message),
 				HttpStatusCode.BadRequest => this.CustomBadRequest(detail: res.Message),
@@ -141,11 +142,10 @@ public class FundController(FundService funds) : ControllerBase {
 	/// <response code="401">The user is not authorized to perform this action.</response>
 	/// <response code="404">Fund or user not found.</response>
 	[HttpPatch("attach-user/{fundId:guid}/{userId:guid}"), AuthorizeRole(UserRole.Type.Administrator)]
-	public async Task<ActionResult<Response<object>>> AddUser(Guid fundId,
-	Guid userId) {
+	public async Task<ActionResult<Response<object>>> AddUser(Guid fundId, Guid userId) {
 		try {
-			var res = await funds.AttachUser(userId,
-				fundId);
+			var res = await funds.AttachUser(userId, fundId);
+			
 			return res.Status switch {
 				HttpStatusCode.OK => this.CustomOk(res.Value),
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message)
@@ -174,4 +174,5 @@ public class FundController(FundService funds) : ControllerBase {
 			return this.InternalError(e.Message);
 		}
 	}
+	
 }

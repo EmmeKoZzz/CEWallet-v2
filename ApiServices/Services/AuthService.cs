@@ -11,13 +11,15 @@ using ApiServices.Models.DataTransferObjects.ApiResponses;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
-
 namespace ApiServices.Services;
 
-public class AuthService(IConfiguration configuration,
+public class AuthService(
+	IConfiguration configuration,
 	AppDbContext dbContext,
 	RoleService roleService,
-	UserService userService) {
+	UserService userService
+) {
+	
 	// TODO: queda hacer un esquema para guardar las sessions con el token de refresco
 	/// Generates a JSON Web Token (JWT) based on the provided configuration and identity claims.
 	private string GenerateToken(ClaimsIdentity identity) {
@@ -27,7 +29,8 @@ public class AuthService(IConfiguration configuration,
 		
 		if (string.IsNullOrEmpty(jwtSecret) || string.IsNullOrEmpty(issuer) || string.IsNullOrEmpty(audience)) {
 			throw new ArgumentException(
-				"JWT configuration values (JWT_SECRET, JWT_ISSUER, JWT_AUDIENCE) are missing or empty.");
+				"JWT configuration values (JWT_SECRET, JWT_ISSUER, JWT_AUDIENCE) are missing or empty."
+			);
 		}
 		
 		var tokenExpirationTime = DateTime.UtcNow.AddMinutes(60); // Adjust based on your security requirements
@@ -35,22 +38,25 @@ public class AuthService(IConfiguration configuration,
 		var tokenHandler = new JwtSecurityTokenHandler();
 		var secureKey =
 			new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)); // Use UTF-8 encoding for broader compatibility
+		
 		var tokenDescriptor = new SecurityTokenDescriptor {
 			Subject = identity,
 			Issuer = issuer,
 			Audience = audience,
-			SigningCredentials = new(secureKey,
-				SecurityAlgorithms.HmacSha256Signature),
+			SigningCredentials = new(secureKey, SecurityAlgorithms.HmacSha256Signature),
 			Expires = tokenExpirationTime
 		};
 		
 		var token = tokenHandler.CreateToken(tokenDescriptor);
+		
 		return tokenHandler.WriteToken(token);
 	}
 	
 	/// Authorizes a request based on the provided JWT token.
-	public async Task<ServiceFlag<TokenValidationDto?>> Authorize(HttpContext httpContext,
-	IEnumerable<UserRole.Type>? rolesRequired = null) {
+	public async Task<ServiceFlag<TokenValidationDto?>> Authorize(
+		HttpContext httpContext,
+		IEnumerable<UserRole.Type>? rolesRequired = null
+	) {
 		var authorizationHeader = httpContext.Request.Headers.Authorization;
 		if (authorizationHeader.Count == 0) { return new(HttpStatusCode.Unauthorized); }
 		
@@ -80,8 +86,7 @@ public class AuthService(IConfiguration configuration,
 			ClockSkew = TimeSpan.Zero
 		};
 		
-		var validationResult = await tokenHandler.ValidateTokenAsync(token,
-			tokenValidationParameters);
+		var validationResult = await tokenHandler.ValidateTokenAsync(token, tokenValidationParameters);
 		if (!validationResult.IsValid) { return new(HttpStatusCode.Unauthorized); }
 		
 		var claims = validationResult.ClaimsIdentity;
@@ -92,9 +97,7 @@ public class AuthService(IConfiguration configuration,
 		if (user.Status != HttpStatusCode.OK) { return new(HttpStatusCode.Unauthorized); }
 		
 		if (rolesRequired == null || !rolesRequired.Any() || rolesRequired.Contains(UserRole.Value(role))) {
-			return new(HttpStatusCode.OK,
-				new(name,
-					role));
+			return new(HttpStatusCode.OK, new(name, role));
 		}
 		
 		return new(HttpStatusCode.Unauthorized);
@@ -105,15 +108,18 @@ public class AuthService(IConfiguration configuration,
 		var (_, role, _) = await roleService.FindById(userDtoDetails.RoleId);
 		if (role == null) { return new(HttpStatusCode.NotFound); }
 		
-		var user = new User(userDtoDetails.UserName,
+		var user = new User(
+			userDtoDetails.UserName,
 			userDtoDetails.Email,
 			userDtoDetails.Password,
-			userDtoDetails.RoleId);
+			userDtoDetails.RoleId
+		);
+		
 		await dbContext.Users.AddAsync(user);
 		await dbContext.SaveChangesAsync();
 		user.Role = role;
-		return new(HttpStatusCode.OK,
-			user);
+		
+		return new(HttpStatusCode.OK, user);
 	}
 	
 	/// Signs in a user using their username and password.
@@ -126,16 +132,16 @@ public class AuthService(IConfiguration configuration,
 		
 		if (!userDb.VerifyPassword(userDtoDetails.Password)) { return new(HttpStatusCode.Unauthorized); }
 		
-		var token = GenerateToken(new([
-			new(ClaimsIdentity.DefaultRoleClaimType,
-				userDb.Role.Name),
-			new(ClaimsIdentity.DefaultNameClaimType,
-				userDb.Username)
-		]));
+		var token = GenerateToken(
+			new(
+				[
+					new(ClaimsIdentity.DefaultRoleClaimType, userDb.Role.Name),
+					new(ClaimsIdentity.DefaultNameClaimType, userDb.Username)
+				]
+			)
+		);
 		
-		return new(HttpStatusCode.OK,
-			new(userDb.Id,
-				userDb.Role.Name,
-				token));
+		return new(HttpStatusCode.OK, new(userDb.Id, userDb.Role.Name, token));
 	}
+	
 }

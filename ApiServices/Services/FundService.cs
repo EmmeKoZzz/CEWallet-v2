@@ -6,14 +6,15 @@ using ApiServices.Models.DataTransferObjects.ApiResponses;
 using Microsoft.EntityFrameworkCore;
 using static System.Net.HttpStatusCode;
 
-
 namespace ApiServices.Services;
 
 public class FundService(AppDbContext dbContext) {
+	
 	/// <summary> Retrieves a collection of all active funds. </summary>
 	/// <returns>An array of FundDto objects representing all active funds.</returns>
 	public async Task<IEnumerable<FundDto>> GetAll() {
 		var res = await dbContext.Funds.Where(entity => entity.Active).ToArrayAsync();
+		
 		return res.Select(CreateFundDto);
 	}
 	
@@ -29,8 +30,7 @@ public class FundService(AppDbContext dbContext) {
 			SingleOrDefaultAsync(entity => entity.Active && entity.Id == id);
 		
 		return res != null
-			? new(OK,
-				CreateFundDto(res))
+			? new(OK, CreateFundDto(res))
 			: new ServiceFlag<FundDto>(NotFound);
 	}
 	
@@ -52,13 +52,12 @@ public class FundService(AppDbContext dbContext) {
 	/// <returns>A FundDto object representing the newly created fund.</returns>
 	public async Task<FundDto> Add(AddFundDto info) {
 		var fund = new Fund {
-			Name = info.Name,
-			LocationUrl = info.LocationUrl,
-			Address = info.Address,
-			Details = info.Details
+			Name = info.Name, LocationUrl = info.LocationUrl, Address = info.Address, Details = info.Details
 		};
+		
 		await dbContext.Funds.AddAsync(fund);
 		await dbContext.SaveChangesAsync();
+		
 		return CreateFundDto(fund);
 	}
 	
@@ -67,13 +66,9 @@ public class FundService(AppDbContext dbContext) {
 	/// <param name="id">The unique identifier of the fund to be updated.</param>
 	/// <returns>A ServiceFlag object containing either a FundDto representing the updated fund on success (with OK), 
 	/// or null with NotFound if the fund is not found.</returns>
-	public async Task<ServiceFlag<FundDto>> Update(AddFundDto info,
-	Guid id) {
+	public async Task<ServiceFlag<FundDto>> Update(AddFundDto info, Guid id) {
 		var fund = await dbContext.Funds.FindAsync(id);
-		if (fund == null) {
-			return new(NotFound,
-				Message: "Fund not found.");
-		}
+		if (fund == null) { return new(NotFound, Message: "Fund not found."); }
 		
 		fund.Name = info.Name;
 		fund.LocationUrl = info.LocationUrl;
@@ -81,18 +76,14 @@ public class FundService(AppDbContext dbContext) {
 		fund.Details = info.Details;
 		await dbContext.SaveChangesAsync();
 		
-		return new(OK,
-			CreateFundDto(fund));
+		return new(OK, CreateFundDto(fund));
 	}
 	
 	/// <summary> Transfers a specified amount of currency from one fund to another. </summary>  
 	/// <param name="info">Information about the transfer, including from/to fund IDs and amount to transfer.</param>  
 	/// <returns>A ServiceFlag containing the result of the transfer operation, including success or error information.</returns>  
 	public async Task<ServiceFlag<TransferDto.Response>> Transfer(TransferDto info) {
-		if (info.Destination == info.Source) {
-			return new(BadRequest,
-				Message: "Destination is the same Source.");
-		}
+		if (info.Destination == info.Source) { return new(BadRequest, Message: "Destination is the same Source."); }
 		
 		// Prepare a query to fetch funds with associated currencies from the database.  
 		var query = dbContext.Funds.Include(entity => entity.FundCurrencies).ThenInclude(entity => entity.Currency);
@@ -103,15 +94,16 @@ public class FundService(AppDbContext dbContext) {
 		
 		// Check if either fund was not found and return a not found response if so.  
 		if (fromFund == null || toFund == null) {
-			return new(NotFound,
-				Message: $"Fund with ID: {(fromFund == null ? info.Source : info.Destination)} not found.");
+			return new(
+				NotFound,
+				Message: $"Fund with ID: {(fromFund == null ? info.Source : info.Destination)} not found."
+			);
 		}
 		
 		// Check if the source fund has the specified currency and sufficient amount for the transfer.  
 		var fromFundCurrency = fromFund.FundCurrencies.SingleOrDefault(currency => currency.CurrencyId == info.Currency);
 		if (fromFundCurrency == null || fromFundCurrency.Amount < info.Amount) {
-			return new(BadRequest,
-				Message: "Fund has not enough of this currency to make this operation.");
+			return new(BadRequest, Message: "Fund has not enough of this currency to make this operation.");
 		}
 		
 		// Begin a database transaction for the transfer operation.  
@@ -123,11 +115,7 @@ public class FundService(AppDbContext dbContext) {
 			// Retrieve the fund currency in the destination fund. If it doesn't exist, create a new one.  
 			var toFundCurrency = toFund.FundCurrencies.SingleOrDefault(currency => currency.CurrencyId == info.Currency);
 			if (toFundCurrency == null) {
-				toFundCurrency = new() {
-					FundId = info.Destination,
-					CurrencyId = info.Currency,
-					Amount = info.Amount
-				};
+				toFundCurrency = new() { FundId = info.Destination, CurrencyId = info.Currency, Amount = info.Amount };
 				toFund.FundCurrencies.Add(toFundCurrency); // Add new currency record if it didn't exist.  
 			} else {
 				// Increase the amount in the existing currency record of the destination fund.  
@@ -140,8 +128,8 @@ public class FundService(AppDbContext dbContext) {
 		} catch (Exception e) {
 			// Roll back the transaction in case of an error and return an internal server error.  
 			await trx.RollbackAsync();
-			return new(InternalServerError,
-				Message: e.Message);
+			
+			return new(InternalServerError, Message: e.Message);
 		}
 		
 		// Create DTOs for both funds to return in the response.  
@@ -149,9 +137,7 @@ public class FundService(AppDbContext dbContext) {
 		var toFundDto = CreateFundDto(toFund);
 		
 		// Return a successful response with the DTOs of both funds.  
-		return new(OK,
-			new(fromFundDto,
-				toFundDto));
+		return new(OK, new(fromFundDto, toFundDto));
 	}
 	
 	/// <summary>Withdraws a specified amount of currency from a fund.</summary>  
@@ -161,25 +147,19 @@ public class FundService(AppDbContext dbContext) {
 	public async Task<ServiceFlag<FundDto>> Withdraw(TransactionDto info) {
 		// Retrieve the fund from the database, including its associated currencies.  
 		var fund = await dbContext.Funds.
-			Include(entity => entity.FundCurrencies) // Include related FundCurrency entities  
-			.
-			ThenInclude(fundCurrency => fundCurrency.Currency) // Include the Currency details for each FundCurrency  
-			.
+			Include(entity => entity.FundCurrencies). // Include related FundCurrency entities  
+			ThenInclude(fundCurrency => fundCurrency.Currency). // Include the Currency details for each FundCurrency  
 			SingleOrDefaultAsync(entity => entity.Active && entity.Id == info.Source); // Search for the fund by ID  
 		
 		// Check if the fund was found; if not, return a not found response.  
-		if (fund == null) {
-			return new(NotFound,
-				Message: "Fund not found.");
-		}
+		if (fund == null) { return new(NotFound, Message: "Fund not found."); }
 		
 		// Check if the fund has the specified currency and if there is enough amount to withdraw.  
 		var currency = fund.FundCurrencies.SingleOrDefault(entity => entity.CurrencyId == info.Currency);
 		if (currency == null || currency.Amount < info.Amount)
 			// Return a bad request response if currency not found or insufficient amount.  
 		{
-			return new(BadRequest,
-				Message: "Fund has not enough of this currency to make this operation.");
+			return new(BadRequest, Message: "Fund has not enough of this currency to make this operation.");
 		}
 		
 		// Deduct the withdrawal amount from the fund's currency.  
@@ -191,8 +171,7 @@ public class FundService(AppDbContext dbContext) {
 		await dbContext.SaveChangesAsync();
 		
 		// Create and return a successful response containing the updated fund details.  
-		return new(OK,
-			CreateFundDto(fund));
+		return new(OK, CreateFundDto(fund));
 	}
 	
 	/// <summary>  
@@ -204,35 +183,29 @@ public class FundService(AppDbContext dbContext) {
 	public async Task<ServiceFlag<FundDto>> Deposit(TransactionDto info) {
 		// Retrieve the fund from the database, including its associated currencies.  
 		var fund = await dbContext.Funds.
-			Include(entity => entity.FundCurrencies) // Include related FundCurrency entities  
-			.
-			ThenInclude(fundCurrency => fundCurrency.Currency) // Include the Currency details for each FundCurrency  
-			.
+			Include(entity => entity.FundCurrencies). // Include related FundCurrency entities  
+			ThenInclude(fundCurrency => fundCurrency.Currency). // Include the Currency details for each FundCurrency  
 			SingleOrDefaultAsync(entity => entity.Active && entity.Id == info.Source); // Search for the fund by ID  
 		
 		// Check if the fund was found; if not, return a not found response.  
-		if (fund == null) {
-			return new(NotFound,
-				Message: "Fund not found.");
-		}
+		if (fund == null) { return new(NotFound, Message: "Fund not found."); }
 		
 		// Check if the specified currency exists in the database.  
 		var test = await dbContext.Currencies.FindAsync(info.Currency);
-		if (test == null) {
-			return new(BadRequest,
-				Message: "This currency doesn't exist.");
-		}
+		if (test == null) { return new(BadRequest, Message: "This currency doesn't exist."); }
 		
 		// Check if the fund has the specified currency.  
 		var currency = fund.FundCurrencies.SingleOrDefault(entity => entity.CurrencyId == info.Currency);
 		
 		// If the currency doesn't exist for this fund, create a new FundCurrency entry.  
 		if (currency == null) {
-			fund.FundCurrencies.Add(new() {
-				CurrencyId = info.Currency, // Set the currency ID  
-				FundId = fund.Id, // Set the fund ID  
-				Amount = info.Amount // Set the amount to be deposited  
-			});
+			fund.FundCurrencies.Add(
+				new() {
+					CurrencyId = info.Currency, // Set the currency ID  
+					FundId = fund.Id, // Set the fund ID  
+					Amount = info.Amount // Set the amount to be deposited  
+				}
+			);
 		} else
 			// If the currency already exists, simply increase its amount.  
 		{
@@ -243,8 +216,7 @@ public class FundService(AppDbContext dbContext) {
 		await dbContext.SaveChangesAsync();
 		
 		// Create and return a successful response containing the updated fund details.  
-		return new(OK,
-			CreateFundDto(fund));
+		return new(OK, CreateFundDto(fund));
 	}
 	
 	/// <summary>Attaches a user to a specified fund by associating the user with the fund.</summary>  
@@ -252,23 +224,20 @@ public class FundService(AppDbContext dbContext) {
 	/// <param name="fundId">The unique identifier of the fund to which the user will be attached.</param>  
 	/// <returns>A ServiceFlag containing the result of the attach operation,   
 	/// including the FundDto if successful or an error message if unsuccessful.</returns>  
-	public async Task<ServiceFlag<FundDto>> AttachUser(Guid userId,
-	Guid fundId) {
+	public async Task<ServiceFlag<FundDto>> AttachUser(Guid userId, Guid fundId) {
 		// Start asynchronous tasks to retrieve both the fund and the user concurrently.  
 		var fundTask = dbContext.Funds.SingleOrDefaultAsync(entity => entity.Active && entity.Id == fundId);
 		var userTask = dbContext.Users.Include(entity => entity.Role).SingleOrDefaultAsync(entity => entity.Id == userId);
 		
 		// Wait for both tasks to complete.  
-		await Task.WhenAll(fundTask,
-			userTask);
+		await Task.WhenAll(fundTask, userTask);
 		
 		// Retrieve the results from the tasks.  
 		var (fund, user) = (await fundTask, await userTask);
 		
 		// Check if either the fund or the user was not found.  
 		if (fund == null || user == null) {
-			return new(NotFound,
-				Message: $"{(fund == null ? "Fund" : "User")} not found.");
+			return new(NotFound, Message: $"{(fund == null ? "Fund" : "User")} not found.");
 		}
 		
 		// Attach the user to the fund.  
@@ -278,8 +247,7 @@ public class FundService(AppDbContext dbContext) {
 		await dbContext.SaveChangesAsync();
 		
 		// Return a successful response containing the updated fund details.  
-		return new(OK,
-			CreateFundDto(fund));
+		return new(OK, CreateFundDto(fund));
 	}
 	
 	/// <summary>Marks a fund as inactive (deletes it logically) and removes associated FundCurrency entries.</summary>  
@@ -291,10 +259,7 @@ public class FundService(AppDbContext dbContext) {
 		var fund = await dbContext.Funds.SingleOrDefaultAsync(entity => entity.Active && entity.Id == id);
 		
 		// If the fund is not found, return a not found response.  
-		if (fund is null) {
-			return new(NotFound,
-				Message: "Fund not found.");
-		}
+		if (fund is null) { return new(NotFound, Message: "Fund not found."); }
 		
 		// Mark the fund as inactive (soft delete).  
 		fund.Name += $" - Deleted --{DateTime.Now}--";
@@ -307,29 +272,27 @@ public class FundService(AppDbContext dbContext) {
 		await dbContext.SaveChangesAsync();
 		
 		// Return a successful response containing the deleted fund's details.  
-		return new(OK,
-			CreateFundDto(fund));
+		return new(OK, CreateFundDto(fund));
 	}
 	
 	/*
-	 * PRIVATE
-	 */
+	* PRIVATE
+	*/
 	
 	// Creates a FundDto object from a Fund entity.  
-	private static FundDto CreateFundDto(Fund fund) => new(fund.Id,
+	private static FundDto CreateFundDto(Fund fund) => new(
+		fund.Id,
 		fund.Name,
 		fund.CreatedAt,
 		fund.LocationUrl,
 		fund.Address,
 		fund.Details,
 		fund.FundCurrencies is { }
-			? fund.FundCurrencies.Select(c => new FundDto.FundCurrency(c.Currency.Name,
-				c.Amount))
+			? fund.FundCurrencies.Select(c => new FundDto.FundCurrency(c.Currency.Name, c.Amount))
 			: default,
 		fund.User is { }
-			? new UserDto(fund.User.Id,
-				fund.User.Username,
-				fund.User.Role.Name,
-				fund.User.CreatedAt)
-			: default);
+			? new UserDto(fund.User.Id, fund.User.Username, fund.User.Role.Name, fund.User.CreatedAt)
+			: default
+	);
+	
 }

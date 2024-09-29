@@ -7,11 +7,11 @@ using ApiServices.Models.DataTransferObjects.ApiResponses;
 using ApiServices.Services;
 using Microsoft.AspNetCore.Mvc;
 
-
 namespace ApiServices.Controllers;
 
 [ApiController, Route("/auth")]
 public class AuthController(AuthService authService) : ControllerBase {
+	
 	/// <summary> Validates a given token and returns the user and role information if successful. </summary>
 	/// <response code="401"> Invalid or expired token. </response>
 	/// <response code="200"> Token is valid, and user information is returned. </response>
@@ -19,6 +19,7 @@ public class AuthController(AuthService authService) : ControllerBase {
 	public async Task<ActionResult<Response<TokenValidationDto>>> ValidateToken() {
 		try {
 			var (status, response, _) = await authService.Authorize(HttpContext);
+			
 			return status switch {
 				HttpStatusCode.Unauthorized => this.CustomUnauthorized(detail: "Invalid or expired token."),
 				HttpStatusCode.OK => this.CustomOk(response)
@@ -35,11 +36,11 @@ public class AuthController(AuthService authService) : ControllerBase {
 	public async Task<ActionResult<Response<LoginResponseDto>>> LoginUser([FromBody] LoginUserDto credentials) {
 		try {
 			var (status, user, _) = await authService.LoginUser(credentials);
+			
 			return status switch {
 				HttpStatusCode.Unauthorized => this.CustomUnauthorized(detail: "Incorrect password."),
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: "User not found."),
-				HttpStatusCode.OK => Ok(new Response<LoginResponseDto>(status,
-					user))
+				HttpStatusCode.OK => Ok(new Response<LoginResponseDto>(status, user))
 			};
 		} catch (Exception e) { return this.InternalError(e.Message); }
 	}
@@ -54,13 +55,12 @@ public class AuthController(AuthService authService) : ControllerBase {
 	public async Task<ActionResult<Response<UserDto>>?> RegisterUser([FromBody] RegisterUserDto userDtoDetails) {
 		try {
 			var (status, user, _) = await authService.RegisterUser(userDtoDetails);
+			
 			return status switch {
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: "Invalid role specified (role doesn't exist)."),
-				HttpStatusCode.OK => this.CustomOk(new UserDto(user!.Id,
-					user.Username,
-					user.Role.Name,
-					user.CreatedAt))
+				HttpStatusCode.OK => this.CustomOk(new UserDto(user!.Id, user.Username, user.Role.Name, user.CreatedAt))
 			};
 		} catch (Exception e) { return this.InternalError(e.Message); }
 	}
+	
 }
