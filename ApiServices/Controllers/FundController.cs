@@ -1,4 +1,5 @@
 using System.Net;
+using ApiServices.Configuration;
 using ApiServices.Decorators;
 using ApiServices.Helpers;
 using ApiServices.Models.Constants;
@@ -10,7 +11,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace ApiServices.Controllers;
 
 [ApiController, Route("/fund")]
-public class FundController(FundService funds) : ControllerBase {
+public class FundController(AppDbContext dbContext, FundService funds, ActivityLogService logs, AuthService auth)
+	: ControllerBase {
 	
 	/// <summary> Retrieves all funds. Only administrators and Supervisors are allowed to perform this action.</summary>
 	/// <response code="200">Successful retrieval of funds.</response>
@@ -53,9 +55,25 @@ public class FundController(FundService funds) : ControllerBase {
 	/// <response code="200">Successful addition of the fund.</response>
 	/// <response code="400">Invalid fund information.</response>
 	/// <response code="401">Unauthorized access.</response>
-	[HttpPost, AuthorizeRole(UserRole.Type.Administrator)]
+	[HttpPost]
 	public async Task<ActionResult<Response<FundDto>>> Add([FromBody] AddFundDto info) {
-		try { return this.CustomOk(await funds.Add(info)); } catch (Exception e) { return this.InternalError(e.Message); }
+		var (validation, userSession, _) = await auth.Authorize(HttpContext, [UserRole.Type.Administrator]);
+		
+		if (validation is not HttpStatusCode.OK)
+			return this.CustomUnauthorized("user attempting to register without administrator privileges).");
+		
+		await using var trx = await dbContext.Database.BeginTransactionAsync();
+		try {
+			var res = await funds.Add(info);
+			await logs.Log(FundActivity.Type.CreateFund, res.Id, userSession!.User.Id, details: info.Details);
+			await trx.CommitAsync();
+			
+			return this.CustomOk(res);
+		} catch (Exception e) {
+			await trx.RollbackAsync();
+			
+			return this.InternalError(e.Message);
+		}
 	}
 	
 	/// <summary> Updates an existing fund. Only administrators are allowed to perform this action.</summary>
@@ -77,24 +95,60 @@ public class FundController(FundService funds) : ControllerBase {
 		} catch (Exception e) { return this.InternalError(e.Message); }
 	}
 	
-	// TODO add optional notes in the request data
 	/// <summary> Transfers funds between accounts. Only administrators and Supervisors are allowed to perform this action.</summary>
 	/// <param name="info">The transfer request details, including source and destination accounts, amount, and optional notes.</param>
 	/// <response code="200">The transfer was successful.</response>
 	/// <response code="400">The transfer request is invalid or missing required fields.</response>
 	/// <response code="401">The user is not authorized to perform this action.</response>
 	/// <response code="404">The source or destination account does not exist.</response>
-	[HttpPost("transfer"), AuthorizeRole(UserRole.Type.Administrator, UserRole.Type.Supervisor)]
+	[HttpPost("transfer")]
 	public async Task<ActionResult<Response<TransferDto.Response>>> Transfer([FromBody] TransferDto info) {
+		var (validation, userSession, _) = await auth.Authorize(
+			HttpContext,
+			[UserRole.Type.Administrator, UserRole.Type.Supervisor]
+		);
+		
+		if (validation is not HttpStatusCode.OK)
+			return this.CustomUnauthorized("user attempting to register without administrator privileges).");
+		
+		await using var trx = await dbContext.Database.BeginTransactionAsync();
 		try {
 			var res = await funds.Transfer(info);
 			
-			return res.Status switch {
-				HttpStatusCode.BadRequest => this.CustomBadRequest(detail: res.Message),
-				HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message),
-				HttpStatusCode.OK => this.CustomOk(res.Value)
-			};
-		} catch (Exception e) { return this.InternalError(e.Message); }
+			if (res.Status is not HttpStatusCode.OK)
+				return res.Status switch {
+					HttpStatusCode.BadRequest => this.CustomBadRequest(detail: res.Message),
+					HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message)
+				};
+			
+			await logs.Log(
+				FundActivity.Type.Transfer,
+				res.Value!.Source.Id,
+				userSession!.User.Id,
+				transactionType: FundTransaction.Type.Withdrawal,
+				currency: info.Currency,
+				amount: info.Amount,
+				details: info.Details
+			);
+			
+			await logs.Log(
+				FundActivity.Type.Transfer,
+				res.Value!.Source.Id,
+				userSession!.User.Id,
+				transactionType: FundTransaction.Type.Deposit,
+				currency: info.Currency,
+				amount: info.Amount,
+				details: info.Details
+			);
+			
+			await trx.CommitAsync();
+			
+			return this.CustomOk(res.Value);
+		} catch (Exception e) {
+			await trx.RollbackAsync();
+			
+			return this.InternalError(e.Message);
+		}
 	}
 	
 	/// <summary> Withdraws funds from a specified account. </summary>
@@ -103,17 +157,41 @@ public class FundController(FundService funds) : ControllerBase {
 	/// <response code="400">Invalid withdrawal request.</response>
 	/// <response code="401">The user is not authorized to perform this action.</response>
 	/// <response code="404">Account not found.</response>
-	[HttpPost("withdrawal"), AuthorizeRole]
+	[HttpPost("withdrawal")]
 	public async Task<ActionResult<Response<FundDto>>> Withdraw([FromBody] TransactionDto info) {
+		var (validation, userSession, _) = await auth.Authorize(HttpContext);
+		
+		if (validation is not HttpStatusCode.OK)
+			return this.CustomUnauthorized("user attempting to register without administrator privileges).");
+		
+		await using var trx = await dbContext.Database.BeginTransactionAsync();
 		try {
 			var res = await funds.Withdraw(info);
 			
-			return res.Status switch {
-				HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message),
-				HttpStatusCode.BadRequest => this.CustomBadRequest(detail: res.Message),
-				HttpStatusCode.OK => this.CustomOk(res.Value)
-			};
-		} catch (Exception e) { return this.InternalError(e.Message); }
+			if (res.Status is not HttpStatusCode.OK)
+				return res.Status switch {
+					HttpStatusCode.BadRequest => this.CustomBadRequest(detail: res.Message),
+					HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message)
+				};
+			
+			await logs.Log(
+				FundActivity.Type.Withdrawal,
+				res.Value!.Id,
+				userSession!.User.Id,
+				currency: info.Currency,
+				transactionType: FundTransaction.Type.Withdrawal,
+				amount: info.Amount,
+				details: info.Details
+			);
+			
+			await trx.CommitAsync();
+			
+			return this.CustomOk(res.Value);
+		} catch (Exception e) {
+			await trx.RollbackAsync();
+			
+			return this.InternalError(e.Message);
+		}
 	}
 	
 	/// <summary>Deposits funds into a specified account. Only administrators are allowed to perform this action.</summary>
@@ -122,17 +200,41 @@ public class FundController(FundService funds) : ControllerBase {
 	/// <response code="400">Invalid deposit request.</response>
 	/// <response code="401">The user is not authorized to perform this action.</response>
 	/// <response code="404">Account not found.</response>
-	[HttpPost("deposit"), AuthorizeRole(UserRole.Type.Administrator)]
+	[HttpPost("deposit")]
 	public async Task<ActionResult<Response<FundDto>>> Deposit([FromBody] TransactionDto info) {
+		var (validation, userSession, _) = await auth.Authorize(HttpContext, [UserRole.Type.Administrator]);
+		
+		if (validation is not HttpStatusCode.OK)
+			return this.CustomUnauthorized("user attempting to register without administrator privileges).");
+		
+		await using var trx = await dbContext.Database.BeginTransactionAsync();
 		try {
 			var res = await funds.Deposit(info);
 			
-			return res.Status switch {
-				HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message),
-				HttpStatusCode.BadRequest => this.CustomBadRequest(detail: res.Message),
-				HttpStatusCode.OK => this.CustomOk(res.Value)
-			};
-		} catch (Exception e) { return this.InternalError(e.Message); }
+			if (res.Status is not HttpStatusCode.OK)
+				return res.Status switch {
+					HttpStatusCode.BadRequest => this.CustomBadRequest(detail: res.Message),
+					HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message)
+				};
+			
+			await logs.Log(
+				FundActivity.Type.Deposit,
+				res.Value!.Id,
+				userSession!.User.Id,
+				currency: info.Currency,
+				transactionType: FundTransaction.Type.Deposit,
+				amount: info.Amount,
+				details: info.Details
+			);
+			
+			await trx.CommitAsync();
+			
+			return this.CustomOk(res.Value);
+		} catch (Exception e) {
+			await trx.RollbackAsync();
+			
+			return this.InternalError(e.Message);
+		}
 	}
 	
 	/// <summary>Attaches a user to a specified fund. Only administrators are allowed to perform this action.</summary>
@@ -158,21 +260,29 @@ public class FundController(FundService funds) : ControllerBase {
 	/// <response code="200">The fund is successfully deleted.</response>  
 	/// <response code="401">The user is not authorized to perform this action.</response>
 	/// <response code="404">No fund is found with the specified identifier.</response>  
-	[HttpDelete("{id:guid}"), AuthorizeRole(UserRole.Type.Administrator)]
+	[HttpDelete("{id:guid}")]
 	public async Task<ActionResult<Response<object>>> Delete([FromRoute] Guid id) {
+		var (validation, userSession, _) = await auth.Authorize(HttpContext, [UserRole.Type.Administrator]);
+		
+		if (validation is not HttpStatusCode.OK)
+			return this.CustomUnauthorized("user attempting to register without administrator privileges).");
+		
+		await using var trx = await dbContext.Database.BeginTransactionAsync();
 		try {
-			// Call the delete method from the funds service  
 			var res = await funds.Delete(id);
 			
-			// Return the appropriate response based on the operation result  
-			return res.Status switch {
-				HttpStatusCode.OK => this.CustomOk(res.Value), // Return 200 OK  
-				HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message) // Return 404 Not Found  
-			};
+			if (res.Status is HttpStatusCode.OK) return this.CustomNotFound(detail: res.Message);
+			await logs.Log(FundActivity.Type.DeleteFund, res.Value!.Id, userSession!.User.Id);
+			
+			await trx.CommitAsync();
+			
+			return this.CustomOk(res.Value);
 		} catch (Exception e) {
-			// Handle any unexpected exceptions and return 500 Internal Server Error  
+			await trx.RollbackAsync();
+			
 			return this.InternalError(e.Message);
 		}
+		
 	}
 	
 }

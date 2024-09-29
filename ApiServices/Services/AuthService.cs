@@ -87,17 +87,19 @@ public class AuthService(
 		};
 		
 		var validationResult = await tokenHandler.ValidateTokenAsync(token, tokenValidationParameters);
-		if (!validationResult.IsValid) { return new(HttpStatusCode.Unauthorized); }
+		
+		if (!validationResult.IsValid) return new(HttpStatusCode.Unauthorized);
 		
 		var claims = validationResult.ClaimsIdentity;
 		var role = claims.FindFirst(ClaimsIdentity.DefaultRoleClaimType)!.Value;
 		var name = claims.FindFirst(ClaimsIdentity.DefaultNameClaimType)!.Value;
 		
 		var user = await userService.FindBy(name: name);
-		if (user.Status != HttpStatusCode.OK) { return new(HttpStatusCode.Unauthorized); }
+		
+		if (user.Value is not { }) return new(HttpStatusCode.Unauthorized);
 		
 		if (rolesRequired == null || !rolesRequired.Any() || rolesRequired.Contains(UserRole.Value(role))) {
-			return new(HttpStatusCode.OK, new(name, role));
+			return new(HttpStatusCode.OK, new(user.Value, role));
 		}
 		
 		return new(HttpStatusCode.Unauthorized);
@@ -118,6 +120,8 @@ public class AuthService(
 		await dbContext.Users.AddAsync(user);
 		await dbContext.SaveChangesAsync();
 		user.Role = role;
+		
+		FileLogger.Log($"Register: {user.Username} as {role.Name.ToUpper()}.");
 		
 		return new(HttpStatusCode.OK, user);
 	}
@@ -140,6 +144,8 @@ public class AuthService(
 				]
 			)
 		);
+		
+		FileLogger.Log($"Login: {userDb.Username}.");
 		
 		return new(HttpStatusCode.OK, new(userDb.Id, userDb.Role.Name, token));
 	}

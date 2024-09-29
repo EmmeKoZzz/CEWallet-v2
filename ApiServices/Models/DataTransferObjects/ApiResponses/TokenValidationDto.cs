@@ -1,8 +1,8 @@
 namespace ApiServices.Models.DataTransferObjects.ApiResponses;
 
-public class TokenValidationDto(string username, string role) {
+public class TokenValidationDto(User user, string role) {
 	
-	public string Username { get; init; } = username;
+	public User User { get; init; } = user;
 	public string Role { get; init; } = role;
 	
 }

@@ -2,13 +2,10 @@ namespace ApiServices.Models.Constants;
 
 public struct FundTransaction {
 	
-	public enum Type { Deposit, Withdrawal, Transfer }
+	public enum Type { Deposit, Withdrawal }
 	
-	public static string Value(Type type) => type switch {
-		Type.Deposit => "Depósito",
-		Type.Withdrawal => "Egreso",
-		Type.Transfer => "Transferencia",
-		_ => throw new ArgumentOutOfRangeException(nameof(type), type, null)
+	public static string? Value(Type? type) => type switch {
+		Type.Deposit => "Depósito", Type.Withdrawal => "Egreso", _ => null
 	};
 	
 }

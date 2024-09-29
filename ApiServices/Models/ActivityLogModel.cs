@@ -17,7 +17,7 @@ public class ActivityLog {
 	public string Activity { get; set; } = null!;
 	[StringLength(50)]
 	public string? TransactionType { get; set; }
-	public double Amount { get; set; }
+	public double? Amount { get; set; }
 	[StringLength(255)]
 	public string? Details { get; set; }
 	[Column(TypeName = "timestamp")]

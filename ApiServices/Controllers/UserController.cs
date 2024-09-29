@@ -51,11 +51,10 @@ public class UserController(UserService userService, AuthService authService) : 
 		if (validation != HttpStatusCode.OK) { return this.CustomUnauthorized(); }
 		
 		if (UserRole.Value(session!.Role) != UserRole.Type.Administrator) {
-			var (_, sessionUser, _) = await userService.FindBy(name: session.Username);
 			var (_, user, _) = await userService.FindBy(name: details.UserName);
 			if (user == null) { return this.CustomNotFound(detail: "User not found."); }
 			
-			if (sessionUser!.Username != user.Username) {
+			if (session.User.Username != user.Username) {
 				return this.CustomUnauthorized(detail: "You are not authorized.");
 			}
 		}
