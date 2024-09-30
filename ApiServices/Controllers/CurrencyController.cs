@@ -19,9 +19,7 @@ public class CurrencyController(CurrencyService currency) : ControllerBase {
 	/// <response code="401"> Unauthorized (missing or invalid authorization token). </response>
 	[HttpGet, AuthorizeRole(UserRole.Type.Administrator)]
 	public async Task<ActionResult<Response<CurrencyDto[]>>> GetAll([FromQuery] bool funds = false) {
-		try { return this.CustomOk(await currency.GetAll(funds)); } catch (Exception e) {
-			return this.InternalError(e.Message);
-		}
+		try { return this.CustomOk(await currency.GetAll(funds)); } catch (Exception e) { return this.InternalError(e.Message); }
 	}
 	
 	/// <summary>Adds a new currency.</summary>
@@ -34,8 +32,7 @@ public class CurrencyController(CurrencyService currency) : ControllerBase {
 			var res = await currency.Add(info);
 			
 			return res.Status switch {
-				HttpStatusCode.BadRequest => this.CustomBadRequest(detail: res.Message),
-				HttpStatusCode.OK => this.CustomOk(res.Value)
+				HttpStatusCode.BadRequest => this.CustomBadRequest(detail: res.Message), HttpStatusCode.OK => this.CustomOk(res.Value)
 			};
 		} catch (Exception e) { return this.InternalError(e.Message); }
 	}
@@ -52,8 +49,7 @@ public class CurrencyController(CurrencyService currency) : ControllerBase {
 			var (status, res, _) = await currency.Update(info, id);
 			
 			return status switch {
-				HttpStatusCode.OK => this.CustomOk(res),
-				HttpStatusCode.NotFound => this.CustomNotFound(detail: "Currency not found.")
+				HttpStatusCode.OK => this.CustomOk(res), HttpStatusCode.NotFound => this.CustomNotFound(detail: "Currency not found.")
 			};
 		} catch (Exception e) { return this.InternalError(e.Message); }
 	}

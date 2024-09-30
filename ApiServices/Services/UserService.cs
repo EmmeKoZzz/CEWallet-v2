@@ -12,7 +12,7 @@ public class UserService(AppDbContext dbContext, RoleService roleService) {
 	/// Retrieves a list of all users.
 	public Task<User[]> GetAll(bool role = false) {
 		var query = dbContext.Users.Where(entity => entity.Active);
-		if (role) { query = query.Include(entity => entity.Role); }
+		if (role) query = query.Include(entity => entity.Role);
 		
 		return query.ToArrayAsync();
 	}
@@ -22,9 +22,9 @@ public class UserService(AppDbContext dbContext, RoleService roleService) {
 		var query = dbContext.Users.Where(entity => entity.Active).Include(entity => entity.Role);
 		
 		User? user = default;
-		if (id != null) { user = await query.SingleOrDefaultAsync(entity => entity.Id == id); } else if (name != null) {
-			user = await query.SingleOrDefaultAsync(entity => entity.Username == name);
-		} else if (email != null) { user = await query.SingleOrDefaultAsync(entity => entity.Email == email); }
+		if (id != null) user = await query.SingleOrDefaultAsync(entity => entity.Id == id);
+		else if (name != null) user = await query.SingleOrDefaultAsync(entity => entity.Username == name);
+		else if (email != null) user = await query.SingleOrDefaultAsync(entity => entity.Email == email);
 		
 		return user == null
 			? new(HttpStatusCode.NotFound)
@@ -34,10 +34,12 @@ public class UserService(AppDbContext dbContext, RoleService roleService) {
 	/// Updates the information of a user.
 	public async Task<ServiceFlag<User?>> UpdateUser(RegisterUserDto details) {
 		var (role, _, _) = await roleService.FindById(details.RoleId);
-		if (role != HttpStatusCode.OK) { return new(HttpStatusCode.BadRequest, null); }
+		
+		if (role != HttpStatusCode.OK) return new(HttpStatusCode.BadRequest, null);
 		
 		var (status, user, _) = await FindBy(name: details.UserName);
-		if (status != HttpStatusCode.OK) { return new(HttpStatusCode.NotFound); }
+		
+		if (status != HttpStatusCode.OK) return new(HttpStatusCode.NotFound);
 		
 		(user!.Email, user.RoleId, user.Username) = (details.Email, details.RoleId, details.Password);
 		await dbContext.SaveChangesAsync();
@@ -48,11 +50,12 @@ public class UserService(AppDbContext dbContext, RoleService roleService) {
 	/// Resets the password for a specified user.
 	public async Task<HttpStatusCode> ResetPassword(ResetPasswordDto details) {
 		var (status, user, _) = await FindBy(details.UserId);
-		if (status != HttpStatusCode.OK) { return HttpStatusCode.NotFound; }
 		
-		if (!user!.VerifyPassword(details.OldPassword)) { return HttpStatusCode.Unauthorized; }
+		if (status != HttpStatusCode.OK) return HttpStatusCode.NotFound;
 		
-		if (details.OldPassword == details.Password) { return HttpStatusCode.OK; }
+		if (!user!.VerifyPassword(details.OldPassword)) return HttpStatusCode.Unauthorized;
+		
+		if (details.OldPassword == details.Password) return HttpStatusCode.OK;
 		
 		user.GeneratePasswordHash(details.Password);
 		await dbContext.SaveChangesAsync();
@@ -63,12 +66,13 @@ public class UserService(AppDbContext dbContext, RoleService roleService) {
 	/// Deletes a user with the specified ID.
 	public async Task<ServiceFlag<User?>> Delete(Guid id) {
 		var user = await dbContext.Users.FindAsync(id);
-		if (user is not { Active: true }) { return new(HttpStatusCode.NotFound); }
+		
+		if (user is not { Active: true }) return new(HttpStatusCode.NotFound);
 		
 		user.Active = false;
 		
 		var funds = dbContext.Funds.Where(entity => entity.UserId == id);
-		foreach (var fund in funds) { fund.UserId = null; }
+		foreach (var fund in funds) fund.UserId = null;
 		
 		await dbContext.SaveChangesAsync();
 		await dbContext.Entry(user).Reference(entity => entity.Role).LoadAsync();

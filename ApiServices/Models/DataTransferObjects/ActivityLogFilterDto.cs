@@ -1,16 +1,15 @@
 namespace ApiServices.Models.DataTransferObjects;
 
-public record LogFilterDto(
+public record ActivityLogFilterDto(
 	DateTime? Since = default,
 	DateTime? Until = default,
 	string[]? FundTransaction = default,
 	string[]? Activity = default,
-	bool? DescAmount = default,
-	bool? DescCreateDate = default,
+	bool AmountOrCreateDate = default,
+	bool Desc = true,
 	double? AmountMin = default,
 	double? AmountMax = default,
-	Guid? Fund = default,
-	Guid? TargetFund = default,
-	Guid? User = default,
+	Guid[]? Funds = default,
+	Guid[]? Users = default,
 	Guid? Currency = default
 );

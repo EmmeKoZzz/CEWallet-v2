@@ -13,6 +13,7 @@ services.AddControllers(); // Add support for controllers to handle API requests
 // Services
 services.AddScoped<AuthorizeFilter>();
 services.AddScoped<AuthService>();
+services.AddScoped<ActivityLogService>();
 services.AddScoped<RoleService>();
 services.AddScoped<UserService>();
 services.AddScoped<CurrencyService>();
@@ -31,18 +32,11 @@ services.AddSwaggerGen(
 		// Add security definitions
 		c.AddSecurityDefinition(
 			"Bearer",
-			new() {
-				Description = "JWT Bearer Token",
-				In = ParameterLocation.Header,
-				Type = SecuritySchemeType.Http,
-				Scheme = "bearer"
-			}
+			new() { Description = "JWT Bearer Token", In = ParameterLocation.Header, Type = SecuritySchemeType.Http, Scheme = "bearer" }
 		);
 		
 		// Add security requirements
-		c.AddSecurityRequirement(
-			new() { { new() { Reference = new() { Type = ReferenceType.SecurityScheme, Id = "Bearer" } }, [] } }
-		);
+		c.AddSecurityRequirement(new() { { new() { Reference = new() { Type = ReferenceType.SecurityScheme, Id = "Bearer" } }, [] } });
 	}
 );
 
@@ -59,9 +53,7 @@ services.AddDbContext<AppDbContext>(o => o.UseMySql(dbConnection, ServerVersion.
 // Configure CORS (Cross-Origin Resource Sharing) based on the environment
 var origin = "*";
 services.AddCors(
-	options => {
-		options.AddPolicy("AllowedOrigins", policy => policy.WithOrigins(origin).AllowAnyHeader().AllowAnyMethod());
-	}
+	options => { options.AddPolicy("AllowedOrigins", policy => policy.WithOrigins(origin).AllowAnyHeader().AllowAnyMethod()); }
 );
 
 // Build the WebApplication instance from the configured builder

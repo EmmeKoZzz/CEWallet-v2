@@ -4,8 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ApiServices.Models;
 
-[PrimaryKey("FundId", "CurrencyId"), Table("Fund_Currency"), Index("FundId", Name = "FundId"),
-Index("CurrencyId", Name = "CurrencyId")]
+[PrimaryKey("FundId", "CurrencyId"), Table("Fund_Currency"), Index("FundId", Name = "FundId"), Index("CurrencyId", Name = "CurrencyId")]
 public class FundCurrency {
 	
 	[Key]

@@ -37,14 +37,14 @@ public class CurrencyService(AppDbContext dbContext) {
 			var priceElement = row.QuerySelector(".price-cell .price-text");
 			
 			// Check if both elements are found, skip if not
-			if (currencyElement == null || priceElement == null) { continue; }
+			if (currencyElement == null || priceElement == null) continue;
 			
 			// Extract currency code (remove leading character and trim)
 			var currency = currencyElement.TextContent[1..].Trim();
 			
 			// Extract price text and convert to float
 			var priceText = priceElement.TextContent.Trim();
-			if (float.TryParse(priceText.Split(' ')[0], out var price)) { currencyData[currency] = price; }
+			if (float.TryParse(priceText.Split(' ')[0], out var price)) currencyData[currency] = price;
 		}
 		
 		// Return the dictionary containing informal foreign exchange rates
@@ -59,12 +59,11 @@ public class CurrencyService(AppDbContext dbContext) {
 		var query = dbContext.Currencies.Where(entity => entity.Active).AsQueryable();
 		
 		// If the 'funds' parameter is true, include related fund data in the query.  
-		if (funds) {
+		if (funds)
 			query = query.Include(e => e.FundCurrencies). // Include FundCurrencies related to Currencies.  
 				ThenInclude(fc => fc.Fund). // Include the Fund related to each FundCurrency.  
 				ThenInclude(f => f.FundCurrencies). // Include FundCurrencies related to those Funds.  
 				ThenInclude(fc => fc.Currency); // Include Currency related to those FundCurrencies.  
-		}
 		
 		// Execute the query and fetch all matching currencies asynchronously.  
 		var currencies = await query.ToListAsync();
@@ -112,8 +111,9 @@ public class CurrencyService(AppDbContext dbContext) {
 	public async Task<ServiceFlag<CurrencyDto>> Update(AddCurrencyDto info, Guid id) {
 		// Find the currency by its unique identifier.  
 		var currency = await dbContext.Currencies.FindAsync(id);
+		
 		// If the currency does not exist, return a NotFound response.  
-		if (currency == null) { return new(NotFound); }
+		if (currency == null) return new(NotFound);
 		
 		// Update the currency's properties with the provided info.  
 		currency.Name = info.Name;
@@ -133,8 +133,9 @@ public class CurrencyService(AppDbContext dbContext) {
 	public async Task<ServiceFlag<CurrencyDto>> Delete(Guid id) {
 		// Find the currency by its unique identifier.  
 		var currency = await dbContext.Currencies.FindAsync(id);
+		
 		// If the currency does not exist, return a NotFound response.  
-		if (currency == null) { return new(NotFound); }
+		if (currency == null) return new(NotFound);
 		
 		// Begin a database transaction for the deletion process.  
 		var trx = await dbContext.Database.BeginTransactionAsync();
@@ -165,7 +166,7 @@ public class CurrencyService(AppDbContext dbContext) {
 	/// <param name="funds">A flag indicating whether to include fund information in the DTO.</param>
 	/// <param name="balance">A flag indicating whether to include total balance information in the DTO.</param>
 	/// <returns>A Task representing the asynchronous operation, containing the mapped CurrencyDto.</returns>  
-	private async Task<CurrencyDto> MapCurrencyToDto(Currency entity, bool funds = false, bool balance = false) {
+	async Task<CurrencyDto> MapCurrencyToDto(Currency entity, bool funds = false, bool balance = false) {
 		// Create the CurrencyDto object and map basic properties.  
 		var dto = new CurrencyDto {
 			Currency = entity.Name, // Set the name of the currency.  
@@ -173,12 +174,10 @@ public class CurrencyService(AppDbContext dbContext) {
 		};
 		
 		// If total balance information is requested, get it.  
-		if (balance) {
-			dto.TotalBalance = await GetTotalBalance(entity); // Set the total balance calculated from FundCurrencies.  
-		}
+		if (balance) dto.TotalBalance = await GetTotalBalance(entity); // Set the total balance calculated from FundCurrencies.  
 		
 		// If funds information is requested, map the associated fund currencies.  
-		if (funds) {
+		if (funds)
 			dto.Funds = entity.FundCurrencies.Select(
 					currencies => new FundDto(
 						currencies.FundId,
@@ -193,7 +192,6 @@ public class CurrencyService(AppDbContext dbContext) {
 					)
 				).
 				ToList(); // Materialize the collection to avoid multiple enumerations later.  
-		}
 		
 		return dto; // Return the fully constructed CurrencyDto.  
 	}
@@ -201,7 +199,7 @@ public class CurrencyService(AppDbContext dbContext) {
 	/// <summary>Calculates the total balance of a currency in the database by summing amounts from FundCurrencies.</summary>  
 	/// <param name="currency">The Currency object for which to calculate the total balance.</param>  
 	/// <returns>A Task representing the asynchronous operation, containing the total balance as a double.</returns>  
-	private async Task<double> GetTotalBalance(Currency currency) => await dbContext.FundCurrencies.
+	async Task<double> GetTotalBalance(Currency currency) => await dbContext.FundCurrencies.
 		Where(entity => entity.CurrencyId == currency.Id) // Filter FundCurrencies by the specified currency ID.  
 		.
 		SumAsync(entity => entity.Amount);

@@ -11,8 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ApiServices.Controllers;
 
 [ApiController, Route("/fund")]
-public class FundController(AppDbContext dbContext, FundService funds, ActivityLogService logs, AuthService auth)
-	: ControllerBase {
+public class FundController(AppDbContext dbContext, FundService funds, ActivityLogService logs, AuthService auth) : ControllerBase {
 	
 	/// <summary> Retrieves all funds. Only administrators and Supervisors are allowed to perform this action.</summary>
 	/// <response code="200">Successful retrieval of funds.</response>
@@ -33,8 +32,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 			var res = await funds.Get(id);
 			
 			return res.Status switch {
-				HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message),
-				HttpStatusCode.OK => this.CustomOk(res.Value)
+				HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message), HttpStatusCode.OK => this.CustomOk(res.Value)
 			};
 		} catch (Exception e) { return this.InternalError(e.Message); }
 	}
@@ -45,9 +43,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 	/// <response code="401">Unauthorized access.</response>
 	[HttpGet("user/{id:guid}"), AuthorizeRole]
 	public async Task<ActionResult<Response<FundDto[]>>> GetUserFunds([FromRoute] Guid id) {
-		try { return this.CustomOk(await funds.GetByUser(id)); } catch (Exception e) {
-			return this.InternalError(e.Message);
-		}
+		try { return this.CustomOk(await funds.GetByUser(id)); } catch (Exception e) { return this.InternalError(e.Message); }
 	}
 	
 	/// <summary> Adds a new fund. Only administrators are allowed to perform this action.</summary>
@@ -89,8 +85,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 			var res = await funds.Update(info, id);
 			
 			return res.Status switch {
-				HttpStatusCode.OK => this.CustomOk(res.Value),
-				HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message)
+				HttpStatusCode.OK => this.CustomOk(res.Value), HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message)
 			};
 		} catch (Exception e) { return this.InternalError(e.Message); }
 	}
@@ -103,10 +98,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 	/// <response code="404">The source or destination account does not exist.</response>
 	[HttpPost("transfer")]
 	public async Task<ActionResult<Response<TransferDto.Response>>> Transfer([FromBody] TransferDto info) {
-		var (validation, userSession, _) = await auth.Authorize(
-			HttpContext,
-			[UserRole.Type.Administrator, UserRole.Type.Supervisor]
-		);
+		var (validation, userSession, _) = await auth.Authorize(HttpContext, [UserRole.Type.Administrator, UserRole.Type.Supervisor]);
 		
 		if (validation is not HttpStatusCode.OK)
 			return this.CustomUnauthorized("user attempting to register without administrator privileges).");
@@ -125,7 +117,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 				FundActivity.Type.Transfer,
 				res.Value!.Source.Id,
 				userSession!.User.Id,
-				transactionType: FundTransaction.Type.Withdrawal,
+				FundTransaction.Type.Withdrawal,
 				currency: info.Currency,
 				amount: info.Amount,
 				details: info.Details
@@ -135,7 +127,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 				FundActivity.Type.Transfer,
 				res.Value!.Source.Id,
 				userSession!.User.Id,
-				transactionType: FundTransaction.Type.Deposit,
+				FundTransaction.Type.Deposit,
 				currency: info.Currency,
 				amount: info.Amount,
 				details: info.Details
@@ -249,8 +241,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 			var res = await funds.AttachUser(userId, fundId);
 			
 			return res.Status switch {
-				HttpStatusCode.OK => this.CustomOk(res.Value),
-				HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message)
+				HttpStatusCode.OK => this.CustomOk(res.Value), HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message)
 			};
 		} catch (Exception e) { return this.InternalError(e.Message); }
 	}
@@ -272,6 +263,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 			var res = await funds.Delete(id);
 			
 			if (res.Status is HttpStatusCode.OK) return this.CustomNotFound(detail: res.Message);
+			
 			await logs.Log(FundActivity.Type.DeleteFund, res.Value!.Id, userSession!.User.Id);
 			
 			await trx.CommitAsync();

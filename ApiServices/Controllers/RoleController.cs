@@ -15,8 +15,9 @@ public class RoleController(RoleService roleService) : ControllerBase {
 	/// <response code="401"> Unauthorized (user attempting to access without administrator privileges). </response>
 	[HttpGet, AuthorizeRole(UserRole.Type.Administrator)]
 	public async Task<ActionResult<Response<IEnumerable<RoleDto>>>> GetAll() {
-		try { return this.CustomOk((await roleService.GetAll()).Select(role => new RoleDto(role.Id, role.Name))); } catch
-			(Exception e) { return this.InternalError(e.Message); }
+		try { return this.CustomOk((await roleService.GetAll()).Select(role => new RoleDto(role.Id, role.Name))); } catch (Exception e) {
+			return this.InternalError(e.Message);
+		}
 	}
 	
 	/// <summary> Get role by his ID </summary>

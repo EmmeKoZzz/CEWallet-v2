@@ -48,15 +48,15 @@ public class UserController(UserService userService, AuthService authService) : 
 	[HttpPut]
 	public async Task<ActionResult<Response<UserDto>>> UpdateUser([FromBody] RegisterUserDto details) {
 		var (validation, session, _) = await authService.Authorize(HttpContext);
-		if (validation != HttpStatusCode.OK) { return this.CustomUnauthorized(); }
+		
+		if (validation != HttpStatusCode.OK) return this.CustomUnauthorized();
 		
 		if (UserRole.Value(session!.Role) != UserRole.Type.Administrator) {
 			var (_, user, _) = await userService.FindBy(name: details.UserName);
-			if (user == null) { return this.CustomNotFound(detail: "User not found."); }
 			
-			if (session.User.Username != user.Username) {
-				return this.CustomUnauthorized(detail: "You are not authorized.");
-			}
+			if (user == null) return this.CustomNotFound(detail: "User not found.");
+			
+			if (session.User.Username != user.Username) return this.CustomUnauthorized(detail: "You are not authorized.");
 		}
 		
 		try {

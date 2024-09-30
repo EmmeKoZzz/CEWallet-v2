@@ -34,9 +34,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 		
 		modelBuilder.Entity<FundCurrency>(
 			entity => {
-				entity.HasKey(e => new { e.FundId, e.CurrencyId }).
-					HasName("PRIMARY").
-					HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0 });
+				entity.HasKey(e => new { e.FundId, e.CurrencyId }).HasName("PRIMARY").HasAnnotation("MySql:IndexPrefixLength", new[] { 0, 0 });
 				
 				entity.HasOne(d => d.Currency).WithMany(p => p.FundCurrencies).HasConstraintName("Fund_Currency_ibfk_2");
 				entity.HasOne(d => d.Fund).WithMany(p => p.FundCurrencies).HasConstraintName("Fund_Currency_ibfk_1");

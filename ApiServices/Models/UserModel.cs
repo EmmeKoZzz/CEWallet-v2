@@ -32,11 +32,8 @@ public class User {
 	public User() { }
 	
 	public User(string username, string email, string password, Guid roleId) {
-		if (string.IsNullOrEmpty(username.Trim()) ||
-			string.IsNullOrEmpty(email.Trim()) ||
-			string.IsNullOrEmpty(password.Trim())) {
+		if (string.IsNullOrEmpty(username.Trim()) || string.IsNullOrEmpty(email.Trim()) || string.IsNullOrEmpty(password.Trim()))
 			throw new($"Invalid user info: username:{username}, email:{email}, password:{password}");
-		}
 		
 		Username = username;
 		Email = email;
@@ -59,7 +56,7 @@ public class User {
 		return PasswordHash.SequenceEqual(calculatedHash);
 	}
 	
-	private static byte[] Concatenate(byte[] a, byte[] b) {
+	static byte[] Concatenate(byte[] a, byte[] b) {
 		var combined = new byte[a.Length + b.Length];
 		Array.Copy(a, 0, combined, 0, a.Length);
 		Array.Copy(b, 0, combined, a.Length, b.Length);

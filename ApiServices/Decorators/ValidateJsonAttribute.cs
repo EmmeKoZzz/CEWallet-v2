@@ -7,10 +7,11 @@ namespace ApiServices.Decorators;
 public class ValidateJsonAttribute : ValidationAttribute {
 	
 	public override bool IsValid(object? value) {
-		if (value == null) { return false; }
+		if (value == null) return false;
 		
 		var currencyData = value as string;
-		if (string.IsNullOrEmpty(currencyData)) { return false; }
+		
+		if (string.IsNullOrEmpty(currencyData)) return false;
 		
 		try {
 			JsonSerializer.Deserialize<object>(currencyData);

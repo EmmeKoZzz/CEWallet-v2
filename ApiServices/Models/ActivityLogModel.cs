@@ -4,8 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ApiServices.Models;
 
-[Table("ActivityLog"), Index("CurrencyId", Name = "CurrencyId"), Index("FundId", Name = "FundId"),
-Index("UserId", Name = "UserId")]
+[Table("ActivityLog"), Index("CurrencyId", Name = "CurrencyId"), Index("FundId", Name = "FundId"), Index("UserId", Name = "UserId")]
 public class ActivityLog {
 	
 	[Key]
@@ -22,5 +21,12 @@ public class ActivityLog {
 	public string? Details { get; set; }
 	[Column(TypeName = "timestamp")]
 	public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+	
+	[ForeignKey("UserId")]
+	public virtual User User { get; set; }
+	[ForeignKey("FundId")]
+	public virtual Fund Fund { get; set; }
+	[ForeignKey("CurrencyId")]
+	public virtual Currency? Currency { get; set; }
 	
 }

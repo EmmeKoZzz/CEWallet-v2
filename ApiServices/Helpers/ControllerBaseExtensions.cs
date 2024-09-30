@@ -18,16 +18,11 @@ public static class ControllerBaseExtensions {
 		string? detail = default
 	) => controller.Unauthorized(new Response<object?>(HttpStatusCode.Unauthorized, value, detail));
 	
-	public static NotFoundObjectResult CustomNotFound(
-		this ControllerBase controller,
-		object? value = default,
-		string? detail = default
-	) => controller.NotFound(new Response<object?>(HttpStatusCode.NotFound, value, detail));
+	public static NotFoundObjectResult CustomNotFound(this ControllerBase controller, object? value = default, string? detail = default) =>
+		controller.NotFound(new Response<object?>(HttpStatusCode.NotFound, value, detail));
 	
-	public static BadRequestObjectResult CustomBadRequest(
-		this ControllerBase controller,
-		object? value = default,
-		string? detail = default
-	) => controller.BadRequest(new Response<object?>(HttpStatusCode.BadRequest, value, detail));
+	public static BadRequestObjectResult
+		CustomBadRequest(this ControllerBase controller, object? value = default, string? detail = default) =>
+		controller.BadRequest(new Response<object?>(HttpStatusCode.BadRequest, value, detail));
 	
 }

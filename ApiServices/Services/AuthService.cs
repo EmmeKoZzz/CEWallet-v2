@@ -13,31 +13,22 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace ApiServices.Services;
 
-public class AuthService(
-	IConfiguration configuration,
-	AppDbContext dbContext,
-	RoleService roleService,
-	UserService userService
-) {
+public class AuthService(IConfiguration configuration, AppDbContext dbContext, RoleService roleService, UserService userService) {
 	
 	// TODO: queda hacer un esquema para guardar las sessions con el token de refresco
 	/// Generates a JSON Web Token (JWT) based on the provided configuration and identity claims.
-	private string GenerateToken(ClaimsIdentity identity) {
+	string GenerateToken(ClaimsIdentity identity) {
 		var jwtSecret = configuration["JWT_SECRET"];
 		var issuer = configuration["JWT_ISSUER"];
 		var audience = configuration["JWT_AUDIENCE"];
 		
-		if (string.IsNullOrEmpty(jwtSecret) || string.IsNullOrEmpty(issuer) || string.IsNullOrEmpty(audience)) {
-			throw new ArgumentException(
-				"JWT configuration values (JWT_SECRET, JWT_ISSUER, JWT_AUDIENCE) are missing or empty."
-			);
-		}
+		if (string.IsNullOrEmpty(jwtSecret) || string.IsNullOrEmpty(issuer) || string.IsNullOrEmpty(audience))
+			throw new ArgumentException("JWT configuration values (JWT_SECRET, JWT_ISSUER, JWT_AUDIENCE) are missing or empty.");
 		
 		var tokenExpirationTime = DateTime.UtcNow.AddMinutes(60); // Adjust based on your security requirements
 		
 		var tokenHandler = new JwtSecurityTokenHandler();
-		var secureKey =
-			new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)); // Use UTF-8 encoding for broader compatibility
+		var secureKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)); // Use UTF-8 encoding for broader compatibility
 		
 		var tokenDescriptor = new SecurityTokenDescriptor {
 			Subject = identity,
@@ -58,10 +49,12 @@ public class AuthService(
 		IEnumerable<UserRole.Type>? rolesRequired = null
 	) {
 		var authorizationHeader = httpContext.Request.Headers.Authorization;
-		if (authorizationHeader.Count == 0) { return new(HttpStatusCode.Unauthorized); }
+		
+		if (authorizationHeader.Count == 0) return new(HttpStatusCode.Unauthorized);
 		
 		var tokenParts = authorizationHeader[0]!.Split("Bearer ");
-		if (tokenParts.Length != 2) { return new(HttpStatusCode.Unauthorized); }
+		
+		if (tokenParts.Length != 2) return new(HttpStatusCode.Unauthorized);
 		
 		var token = tokenParts[1];
 		
@@ -69,9 +62,8 @@ public class AuthService(
 		var issuer = configuration["JWT_ISSUER"];
 		var audience = configuration["JWT_AUDIENCE"];
 		
-		if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(issuer) || string.IsNullOrEmpty(audience)) {
+		if (string.IsNullOrEmpty(key) || string.IsNullOrEmpty(issuer) || string.IsNullOrEmpty(audience))
 			throw new ArgumentException("Authorization: Configuration values cannot be null or empty.");
-		}
 		
 		var tokenHandler = new JwtSecurityTokenHandler();
 		var secureKey = Encoding.ASCII.GetBytes(key);
@@ -98,9 +90,8 @@ public class AuthService(
 		
 		if (user.Value is not { }) return new(HttpStatusCode.Unauthorized);
 		
-		if (rolesRequired == null || !rolesRequired.Any() || rolesRequired.Contains(UserRole.Value(role))) {
+		if (rolesRequired == null || !rolesRequired.Any() || rolesRequired.Contains(UserRole.Value(role)))
 			return new(HttpStatusCode.OK, new(user.Value, role));
-		}
 		
 		return new(HttpStatusCode.Unauthorized);
 	}
@@ -108,14 +99,10 @@ public class AuthService(
 	/// Registers a new user in the database.
 	public async Task<ServiceFlag<User?>> RegisterUser(RegisterUserDto userDtoDetails) {
 		var (_, role, _) = await roleService.FindById(userDtoDetails.RoleId);
-		if (role == null) { return new(HttpStatusCode.NotFound); }
 		
-		var user = new User(
-			userDtoDetails.UserName,
-			userDtoDetails.Email,
-			userDtoDetails.Password,
-			userDtoDetails.RoleId
-		);
+		if (role == null) return new(HttpStatusCode.NotFound);
+		
+		var user = new User(userDtoDetails.UserName, userDtoDetails.Email, userDtoDetails.Password, userDtoDetails.RoleId);
 		
 		await dbContext.Users.AddAsync(user);
 		await dbContext.SaveChangesAsync();
@@ -132,17 +119,12 @@ public class AuthService(
 			Where(entity => entity.Active).
 			SingleOrDefaultAsync(e => e.Username == userDtoDetails.UserName);
 		
-		if (userDb == null) { return new(HttpStatusCode.NotFound); }
+		if (userDb == null) return new(HttpStatusCode.NotFound);
 		
-		if (!userDb.VerifyPassword(userDtoDetails.Password)) { return new(HttpStatusCode.Unauthorized); }
+		if (!userDb.VerifyPassword(userDtoDetails.Password)) return new(HttpStatusCode.Unauthorized);
 		
 		var token = GenerateToken(
-			new(
-				[
-					new(ClaimsIdentity.DefaultRoleClaimType, userDb.Role.Name),
-					new(ClaimsIdentity.DefaultNameClaimType, userDb.Username)
-				]
-			)
+			new([new(ClaimsIdentity.DefaultRoleClaimType, userDb.Role.Name), new(ClaimsIdentity.DefaultNameClaimType, userDb.Username)])
 		);
 		
 		FileLogger.Log($"Login: {userDb.Username}.");
