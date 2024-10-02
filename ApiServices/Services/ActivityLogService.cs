@@ -1,9 +1,9 @@
 using ApiServices.Configuration;
+using ApiServices.Constants;
+using ApiServices.DataTransferObjects;
+using ApiServices.DataTransferObjects.ApiResponses;
 using ApiServices.Helpers;
 using ApiServices.Models;
-using ApiServices.Models.Constants;
-using ApiServices.Models.DataTransferObjects;
-using ApiServices.Models.DataTransferObjects.ApiResponses;
 using Microsoft.EntityFrameworkCore;
 
 namespace ApiServices.Services;

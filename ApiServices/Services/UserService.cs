@@ -1,8 +1,9 @@
 ﻿using System.Net;
 using ApiServices.Configuration;
+using ApiServices.DataTransferObjects;
 using ApiServices.Helpers;
+using ApiServices.Helpers.Structs;
 using ApiServices.Models;
-using ApiServices.Models.DataTransferObjects;
 using Microsoft.EntityFrameworkCore;
 
 namespace ApiServices.Services;

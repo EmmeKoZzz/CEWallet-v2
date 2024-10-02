@@ -1,9 +1,10 @@
 using AngleSharp;
 using ApiServices.Configuration;
+using ApiServices.DataTransferObjects;
+using ApiServices.DataTransferObjects.ApiResponses;
 using ApiServices.Helpers;
+using ApiServices.Helpers.Structs;
 using ApiServices.Models;
-using ApiServices.Models.DataTransferObjects;
-using ApiServices.Models.DataTransferObjects.ApiResponses;
 using Microsoft.EntityFrameworkCore;
 using static System.Net.HttpStatusCode;
 
@@ -187,7 +188,7 @@ public class CurrencyService(AppDbContext dbContext) {
 						currencies.Fund.Address,
 						currencies.Fund.Details,
 						currencies.Fund.FundCurrencies.Select(
-							currency => new FundDto.FundCurrency(currency.Currency.Name, currency.Amount)
+							currency => new FundCurrencyInfo(currency.Currency.Name, currency.Amount)
 						) // Map FundCurrency information.  
 					)
 				).

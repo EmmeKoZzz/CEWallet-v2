@@ -1,5 +1,5 @@
 using System.Net;
 
-namespace ApiServices.Models.DataTransferObjects.ApiResponses;
+namespace ApiServices.DataTransferObjects.ApiResponses;
 
 public record Response<T>(HttpStatusCode Status, T? Data = default, string? Detail = default);

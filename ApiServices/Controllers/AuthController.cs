@@ -1,9 +1,10 @@
 using System.Net;
+using ApiServices.Constants;
+using ApiServices.DataTransferObjects;
+using ApiServices.DataTransferObjects.ApiResponses;
 using ApiServices.Decorators;
 using ApiServices.Helpers;
-using ApiServices.Models.Constants;
-using ApiServices.Models.DataTransferObjects;
-using ApiServices.Models.DataTransferObjects.ApiResponses;
+using ApiServices.Helpers.Structs;
 using ApiServices.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,20 +28,35 @@ public class AuthController(AuthService authService) : ControllerBase {
 		} catch (Exception e) { return this.InternalError(e.Message); }
 	}
 	
+	/// <summary>Refreshes the access token of an authenticated user.</summary>
+	/// <param name="request">The request containing the refresh token.</param>
+	/// <response code="200">Successful refresh. Returns the new access token and refresh token.</response>
+	/// <response code="401">Unauthorized. The refresh token is invalid or expired.</response>
+	[HttpPost("refresh")]
+	public async Task<ActionResult<Response<AuthResponseDto>>> RefreshToken([FromBody] Tokens request) {
+		try {
+			var (status, authResponse, message) = await authService.RefreshTokens(request);
+			
+			return status switch {
+				HttpStatusCode.Unauthorized => this.CustomUnauthorized(detail: message), HttpStatusCode.OK => Ok(authResponse)
+			};
+		} catch (Exception e) { return this.InternalError(e.Message); }
+	}
+	
 	/// <summary> Logs in a user. </summary>
 	/// <param name="credentials">The user's login credentials.</param>
 	/// <response code="200"> Login successful. </response>
 	/// <response code="401"> Incorrect password. </response>
 	/// <response code="404"> User not found. </response>
 	[HttpPost("login")]
-	public async Task<ActionResult<Response<LoginResponseDto>>> LoginUser([FromBody] LoginUserDto credentials) {
+	public async Task<ActionResult<Response<AuthResponseDto>>> LoginUser([FromBody] LoginUserDto credentials) {
 		try {
 			var (status, user, _) = await authService.LoginUser(credentials);
 			
 			return status switch {
 				HttpStatusCode.Unauthorized => this.CustomUnauthorized(detail: "Incorrect password."),
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: "User not found."),
-				HttpStatusCode.OK => Ok(new Response<LoginResponseDto>(status, user))
+				HttpStatusCode.OK => Ok(new Response<AuthResponseDto>(status, user))
 			};
 		} catch (Exception e) { return this.InternalError(e.Message); }
 	}

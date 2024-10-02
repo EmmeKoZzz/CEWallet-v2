@@ -1,4 +1,4 @@
-namespace ApiServices.Models.DataTransferObjects.ApiResponses;
+namespace ApiServices.DataTransferObjects.ApiResponses;
 
 public class RoleDto(Guid id, string role) {
 	

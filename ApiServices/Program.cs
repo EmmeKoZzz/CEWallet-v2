@@ -51,9 +51,9 @@ var dbConnection = builder.Configuration.GetConnectionString(
 services.AddDbContext<AppDbContext>(o => o.UseMySql(dbConnection, ServerVersion.AutoDetect(dbConnection)));
 
 // Configure CORS (Cross-Origin Resource Sharing) based on the environment
-var origin = "*";
+var origin = builder.Configuration["AllowedHosts"];
 services.AddCors(
-	options => { options.AddPolicy("AllowedOrigins", policy => policy.WithOrigins(origin).AllowAnyHeader().AllowAnyMethod()); }
+	options => { options.AddPolicy("AllowedOrigins", policy => policy.WithOrigins(origin ?? "*").AllowAnyHeader().AllowAnyMethod()); }
 );
 
 // Build the WebApplication instance from the configured builder

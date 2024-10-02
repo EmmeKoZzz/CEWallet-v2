@@ -1,6 +1,7 @@
 using System.Net;
 using ApiServices.Configuration;
 using ApiServices.Helpers;
+using ApiServices.Helpers.Structs;
 using ApiServices.Models;
 using Microsoft.EntityFrameworkCore;
 

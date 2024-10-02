@@ -1,9 +1,9 @@
 using System.Net;
+using ApiServices.Constants;
+using ApiServices.DataTransferObjects;
+using ApiServices.DataTransferObjects.ApiResponses;
 using ApiServices.Decorators;
 using ApiServices.Helpers;
-using ApiServices.Models.Constants;
-using ApiServices.Models.DataTransferObjects;
-using ApiServices.Models.DataTransferObjects.ApiResponses;
 using ApiServices.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,7 +18,7 @@ public class CurrencyController(CurrencyService currency) : ControllerBase {
 	/// <response code="400"> Bad request (e.g., invalid data in request body). </response>
 	/// <response code="401"> Unauthorized (missing or invalid authorization token). </response>
 	[HttpGet, AuthorizeRole(UserRole.Type.Administrator)]
-	public async Task<ActionResult<Response<CurrencyDto[]>>> GetAll([FromQuery] bool funds = false) {
+	public async Task<ActionResult<Response<IEnumerable<CurrencyDto>>>> GetAll([FromQuery] bool funds = false) {
 		try { return this.CustomOk(await currency.GetAll(funds)); } catch (Exception e) { return this.InternalError(e.Message); }
 	}
 	

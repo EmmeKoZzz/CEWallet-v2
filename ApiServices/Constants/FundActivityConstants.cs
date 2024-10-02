@@ -1,4 +1,4 @@
-namespace ApiServices.Models.Constants;
+namespace ApiServices.Constants;
 
 public struct FundActivity {
 	

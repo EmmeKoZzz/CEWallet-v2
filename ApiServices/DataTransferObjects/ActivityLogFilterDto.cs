@@ -1,4 +1,4 @@
-namespace ApiServices.Models.DataTransferObjects;
+namespace ApiServices.DataTransferObjects;
 
 public record ActivityLogFilterDto(
 	DateTime? Since = default,

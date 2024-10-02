@@ -1,8 +1,8 @@
 ﻿using System.Net;
+using ApiServices.Constants;
+using ApiServices.DataTransferObjects.ApiResponses;
 using ApiServices.Decorators;
 using ApiServices.Helpers;
-using ApiServices.Models.Constants;
-using ApiServices.Models.DataTransferObjects.ApiResponses;
 using ApiServices.Services;
 using Microsoft.AspNetCore.Mvc;
 

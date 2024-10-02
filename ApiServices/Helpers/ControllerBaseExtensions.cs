@@ -1,5 +1,5 @@
 using System.Net;
-using ApiServices.Models.DataTransferObjects.ApiResponses;
+using ApiServices.DataTransferObjects.ApiResponses;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ApiServices.Helpers;

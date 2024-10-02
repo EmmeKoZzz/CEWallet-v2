@@ -1,9 +1,8 @@
 using ApiServices.Configuration;
-using ApiServices.Helpers;
+using ApiServices.DataTransferObjects;
+using ApiServices.DataTransferObjects.ApiResponses;
+using ApiServices.Helpers.Structs;
 using ApiServices.Models;
-using ApiServices.Models.Constants;
-using ApiServices.Models.DataTransferObjects;
-using ApiServices.Models.DataTransferObjects.ApiResponses;
 using Microsoft.EntityFrameworkCore;
 using static System.Net.HttpStatusCode;
 
@@ -275,9 +274,7 @@ public class FundService(AppDbContext dbContext) {
 		fund.LocationUrl,
 		fund.Address,
 		fund.Details,
-		fund.FundCurrencies is { }
-			? fund.FundCurrencies.Select(c => new FundDto.FundCurrency(c.Currency.Name, c.Amount))
-			: default,
+		fund.FundCurrencies?.Select(c => new FundCurrencyInfo(c.Currency.Name, c.Amount)),
 		fund.User is { }
 			? new UserDto(fund.User.Id, fund.User.Username, fund.User.Role.Name, fund.User.CreatedAt)
 			: default

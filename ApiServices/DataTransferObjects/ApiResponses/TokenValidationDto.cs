@@ -1,4 +1,6 @@
-namespace ApiServices.Models.DataTransferObjects.ApiResponses;
+using ApiServices.Models;
+
+namespace ApiServices.DataTransferObjects.ApiResponses;
 
 public class TokenValidationDto(User user, string role) {
 	
