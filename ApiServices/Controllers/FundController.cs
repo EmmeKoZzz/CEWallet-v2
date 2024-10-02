@@ -62,6 +62,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 		try {
 			var res = await funds.Add(info);
 			await logs.Log(FundActivity.Type.CreateFund, res.Id, userSession!.User.Id, details: info.Details);
+			await dbContext.SaveChangesAsync();
 			await trx.CommitAsync();
 			
 			return this.CustomOk(res);
@@ -83,6 +84,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 	public async Task<ActionResult<Response<FundDto>>> Update([FromBody] AddFundDto info, [FromRoute] Guid id) {
 		try {
 			var res = await funds.Update(info, id);
+			await dbContext.SaveChangesAsync();
 			
 			return res.Status switch {
 				HttpStatusCode.OK => this.CustomOk(res.Value), HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message)
@@ -133,6 +135,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 				details: info.Details
 			);
 			
+			await dbContext.SaveChangesAsync();
 			await trx.CommitAsync();
 			
 			return this.CustomOk(res.Value);
@@ -176,6 +179,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 				details: info.Details
 			);
 			
+			await dbContext.SaveChangesAsync();
 			await trx.CommitAsync();
 			
 			return this.CustomOk(res.Value);
@@ -219,6 +223,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 				details: info.Details
 			);
 			
+			await dbContext.SaveChangesAsync();
 			await trx.CommitAsync();
 			
 			return this.CustomOk(res.Value);
@@ -239,6 +244,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 	public async Task<ActionResult<Response<object>>> AddUser(Guid fundId, Guid userId) {
 		try {
 			var res = await funds.AttachUser(userId, fundId);
+			await dbContext.SaveChangesAsync();
 			
 			return res.Status switch {
 				HttpStatusCode.OK => this.CustomOk(res.Value), HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message)
@@ -262,10 +268,10 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 		try {
 			var res = await funds.Delete(id);
 			
-			if (res.Status is HttpStatusCode.OK) return this.CustomNotFound(detail: res.Message);
-			
+			if (res.Status is HttpStatusCode.NotFound) return this.CustomNotFound(detail: res.Message);
 			await logs.Log(FundActivity.Type.DeleteFund, res.Value!.Id, userSession!.User.Id);
 			
+			await dbContext.SaveChangesAsync();
 			await trx.CommitAsync();
 			
 			return this.CustomOk(res.Value);

@@ -1,4 +1,5 @@
 using System.Net;
+using ApiServices.Configuration;
 using ApiServices.Constants;
 using ApiServices.DataTransferObjects;
 using ApiServices.DataTransferObjects.ApiResponses;
@@ -10,7 +11,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace ApiServices.Controllers;
 
 [ApiController, Route("/currency")]
-public class CurrencyController(CurrencyService currency) : ControllerBase {
+public class CurrencyController(ActivityLogService logService, AuthService auth, CurrencyService currency, AppDbContext dbContext)
+	: ControllerBase {
 	
 	/// <summary> Retrieves a list of all currencies. </summary>
 	/// <param name="funds">Optional parameter indicating whether to include related Fund information.</param>
@@ -30,6 +32,7 @@ public class CurrencyController(CurrencyService currency) : ControllerBase {
 	public async Task<ActionResult<Response<CurrencyDto>>> Add(AddCurrencyDto info) {
 		try {
 			var res = await currency.Add(info);
+			await dbContext.SaveChangesAsync();
 			
 			return res.Status switch {
 				HttpStatusCode.BadRequest => this.CustomBadRequest(detail: res.Message), HttpStatusCode.OK => this.CustomOk(res.Value)
@@ -47,6 +50,7 @@ public class CurrencyController(CurrencyService currency) : ControllerBase {
 	public async Task<ActionResult<Response<CurrencyDto>>> Update([FromBody] AddCurrencyDto info, [FromRoute] Guid id) {
 		try {
 			var (status, res, _) = await currency.Update(info, id);
+			await dbContext.SaveChangesAsync();
 			
 			return status switch {
 				HttpStatusCode.OK => this.CustomOk(res), HttpStatusCode.NotFound => this.CustomNotFound(detail: "Currency not found.")
@@ -59,17 +63,44 @@ public class CurrencyController(CurrencyService currency) : ControllerBase {
 	/// <response code="200">Currency deleted successfully.</response>
 	/// <response code="401">Unauthorized (missing or invalid authorization token).</response>
 	/// <response code="404">Currency not found.</response>
-	[HttpDelete("{id:guid}"), AuthorizeRole(UserRole.Type.Administrator)]
+	[HttpDelete("{id:guid}")]
 	public async Task<ActionResult> Delete([FromRoute] Guid id) {
+		var validation = await auth.Authorize(HttpContext, [UserRole.Type.Administrator]);
+		
+		if (validation.Status is not HttpStatusCode.OK) return this.CustomUnauthorized(detail: validation.Message);
+		
+		var trx = await dbContext.Database.BeginTransactionAsync();
 		try {
-			var (status, res, message) = await currency.Delete(id);
+			var (status, (currencyData, fundData), message) = await currency.Delete(id);
 			
-			return status switch {
-				HttpStatusCode.OK => this.CustomOk(res),
-				HttpStatusCode.NotFound => this.CustomNotFound("Currency not found."),
-				HttpStatusCode.InternalServerError => this.InternalError(message)
-			};
-		} catch (Exception e) { return this.InternalError(e.Message); }
+			if (status is not HttpStatusCode.OK) {
+				return status switch {
+					HttpStatusCode.NotFound => this.CustomNotFound("Currency not found."),
+					HttpStatusCode.InternalServerError => this.InternalError(message)
+				};
+			}
+			
+			var logTasks = fundData.Select(
+				data => logService.Log(
+					FundActivity.Type.DeleteCurrency,
+					data.Item1, // Fund ID 
+					validation.Value!.User.Id,
+					FundTransaction.Type.Withdrawal,
+					data.Item2 // Currency Amount
+				)
+			);
+			
+			await Task.WhenAll(logTasks);
+			
+			await dbContext.SaveChangesAsync();
+			await trx.CommitAsync();
+			
+			return this.CustomOk(currencyData);
+		} catch (Exception e) {
+			await trx.RollbackAsync();
+			
+			return this.InternalError(e.Message);
+		}
 	}
 	
 	/// <summary>Gets the informal foreign exchange rates.</summary>

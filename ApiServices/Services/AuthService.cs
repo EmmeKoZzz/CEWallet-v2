@@ -91,16 +91,17 @@ public class AuthService(IConfiguration configuration, AppDbContext dbContext, R
 	/// <returns>A ServiceFlag containing the authorization result and user information if successful.</returns>
 	public async Task<ServiceFlag<TokenValidationDto?>> Authorize(HttpContext http, IEnumerable<UserRole.Type>? rolesRequired = null) {
 		var authorizationHeader = http.Request.Headers.Authorization;
+		const string message = "Unauthorized (user attempting to register without administrator privileges).";
 		
-		if (authorizationHeader.Count == 0) return new(HttpStatusCode.Unauthorized);
+		if (authorizationHeader.Count == 0) return new(HttpStatusCode.Unauthorized, Message: message);
 		var tokenParts = authorizationHeader[0]!.Split("Bearer ");
 		
-		if (tokenParts.Length != 2) return new(HttpStatusCode.Unauthorized);
+		if (tokenParts.Length != 2) return new(HttpStatusCode.Unauthorized, Message: message);
 		var token = tokenParts[1];
 		
 		var validationResult = await TokenHandler.ValidateTokenAsync(token, CreateValidationParams(configuration["JWT:SigningKey"] ?? ""));
 		
-		if (!validationResult.IsValid) return new(HttpStatusCode.Unauthorized);
+		if (!validationResult.IsValid) return new(HttpStatusCode.Unauthorized, Message: message);
 		
 		var claims = validationResult.ClaimsIdentity;
 		var role = claims.FindFirst(ClaimsIdentity.DefaultRoleClaimType)!.Value;
@@ -108,12 +109,12 @@ public class AuthService(IConfiguration configuration, AppDbContext dbContext, R
 		
 		var user = await userService.FindBy(name: name);
 		
-		if (user.Value is not { }) return new(HttpStatusCode.Unauthorized);
+		if (user.Value is not { }) return new(HttpStatusCode.Unauthorized, Message: message);
 		
 		if (rolesRequired == null || !rolesRequired.Any() || rolesRequired.Contains(UserRole.Value(role)))
 			return new(HttpStatusCode.OK, new(user.Value, role));
 		
-		return new(HttpStatusCode.Unauthorized);
+		return new(HttpStatusCode.Unauthorized, Message: message);
 	}
 	
 	/// <summary>Refreshes the authentication tokens for a user.</summary>

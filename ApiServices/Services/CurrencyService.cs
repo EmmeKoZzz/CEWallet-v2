@@ -1,5 +1,6 @@
 using AngleSharp;
 using ApiServices.Configuration;
+using ApiServices.Constants;
 using ApiServices.DataTransferObjects;
 using ApiServices.DataTransferObjects.ApiResponses;
 using ApiServices.Helpers;
@@ -10,7 +11,7 @@ using static System.Net.HttpStatusCode;
 
 namespace ApiServices.Services;
 
-public class CurrencyService(AppDbContext dbContext) {
+public class CurrencyService(AppDbContext dbContext, ActivityLogService logService) {
 	
 	/// <summary>Retrieves informal foreign exchange rates from a public website (eltoque.com).</summary>
 	/// <returns>A dictionary containing informal foreign exchange rates.</returns>
@@ -98,9 +99,6 @@ public class CurrencyService(AppDbContext dbContext) {
 				break;
 		}
 		
-		// Save the changes to the database.  
-		await dbContext.SaveChangesAsync();
-		
 		// Return the result, including the newly added or reactivated currency.  
 		return new(OK, await MapCurrencyToDto(currency));
 	}
@@ -119,9 +117,6 @@ public class CurrencyService(AppDbContext dbContext) {
 		// Update the currency's properties with the provided info.  
 		currency.Name = info.Name;
 		
-		// Save the changes to the database.  
-		await dbContext.SaveChangesAsync();
-		
 		// Return the result, confirming the update was successful.  
 		return new(OK, await MapCurrencyToDto(currency));
 	}
@@ -131,34 +126,19 @@ public class CurrencyService(AppDbContext dbContext) {
 	/// </summary>  
 	/// <param name="id">The unique identifier of the currency to be deleted.</param>  
 	/// <returns>An asynchronous task returning a ServiceFlag containing the result of the operation.</returns>  
-	public async Task<ServiceFlag<CurrencyDto>> Delete(Guid id) {
+	public async Task<ServiceFlag<(CurrencyDto, Tuple<Guid, double>[])>> Delete(Guid id) {
 		// Find the currency by its unique identifier.  
 		var currency = await dbContext.Currencies.FindAsync(id);
 		
 		// If the currency does not exist, return a NotFound response.  
 		if (currency == null) return new(NotFound);
+		var fundsRelated = dbContext.FundCurrencies.Where(entity => entity.CurrencyId == id);
+		var fundIds = await fundsRelated.Select(entity => new Tuple<Guid, double>(entity.FundId, entity.Amount)).ToArrayAsync();
 		
-		// Begin a database transaction for the deletion process.  
-		var trx = await dbContext.Database.BeginTransactionAsync();
-		try {
-			// TODO: Log all funds that have this currency to 0 (Activity Log Table).  
-			// Remove all FundCurrencies associated with this currency.  
-			dbContext.FundCurrencies.RemoveRange(dbContext.FundCurrencies.Where(entity => entity.CurrencyId == id));
-			// Mark the currency as inactive (soft delete).  
-			currency.Active = false;
-			
-			// Save the changes to the database and commit the transaction.  
-			await dbContext.SaveChangesAsync();
-			await trx.CommitAsync();
-		} catch (Exception e) {
-			// If an error occurs, roll back the transaction and return an error response.  
-			await trx.RollbackAsync();
-			
-			return new(InternalServerError, Message: e.Message);
-		}
+		dbContext.FundCurrencies.RemoveRange(fundsRelated);
+		currency.Active = false;
 		
-		// Return the result, indicating the deletion was successful.  
-		return new(OK, await MapCurrencyToDto(currency));
+		return new(OK, (await MapCurrencyToDto(currency), fundIds));
 	}
 	
 	/* HELPERS... */
@@ -201,8 +181,7 @@ public class CurrencyService(AppDbContext dbContext) {
 	/// <param name="currency">The Currency object for which to calculate the total balance.</param>  
 	/// <returns>A Task representing the asynchronous operation, containing the total balance as a double.</returns>  
 	async Task<double> GetTotalBalance(Currency currency) => await dbContext.FundCurrencies.
-		Where(entity => entity.CurrencyId == currency.Id) // Filter FundCurrencies by the specified currency ID.  
-		.
+		Where(entity => entity.CurrencyId == currency.Id).
 		SumAsync(entity => entity.Amount);
 	
 }

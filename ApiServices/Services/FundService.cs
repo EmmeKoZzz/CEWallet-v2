@@ -54,7 +54,6 @@ public class FundService(AppDbContext dbContext) {
 		var fund = new Fund { Name = info.Name, LocationUrl = info.LocationUrl, Address = info.Address, Details = info.Details };
 		
 		await dbContext.Funds.AddAsync(fund);
-		await dbContext.SaveChangesAsync();
 		
 		return CreateFundDto(fund);
 	}
@@ -73,7 +72,6 @@ public class FundService(AppDbContext dbContext) {
 		fund.LocationUrl = info.LocationUrl;
 		fund.Address = info.Address;
 		fund.Details = info.Details;
-		await dbContext.SaveChangesAsync();
 		
 		return new(OK, CreateFundDto(fund));
 	}
@@ -101,30 +99,17 @@ public class FundService(AppDbContext dbContext) {
 		if (fromFundCurrency == null || fromFundCurrency.Amount < info.Amount)
 			return new(BadRequest, Message: "Fund has not enough of this currency to make this operation.");
 		
-		// Begin a database transaction for the transfer operation.  
-		await using var trx = await dbContext.Database.BeginTransactionAsync();
-		try {
-			// Reduce the amount of currency in the source fund.  
-			fromFundCurrency.Amount -= info.Amount;
-			
-			// Retrieve the fund currency in the destination fund. If it doesn't exist, create a new one.  
-			var toFundCurrency = toFund.FundCurrencies.SingleOrDefault(currency => currency.CurrencyId == info.Currency);
-			if (toFundCurrency == null) {
-				toFundCurrency = new() { FundId = info.Destination, CurrencyId = info.Currency, Amount = info.Amount };
-				toFund.FundCurrencies.Add(toFundCurrency); // Add new currency record if it didn't exist.  
-			} else
-				// Increase the amount in the existing currency record of the destination fund.  
-				toFundCurrency.Amount += info.Amount;
-			
-			// Save the changes to the database and commit the transaction.  
-			await dbContext.SaveChangesAsync();
-			await trx.CommitAsync();
-		} catch (Exception e) {
-			// Roll back the transaction in case of an error and return an internal server error.  
-			await trx.RollbackAsync();
-			
-			return new(InternalServerError, Message: e.Message);
-		}
+		// Reduce the amount of currency in the source fund.  
+		fromFundCurrency.Amount -= info.Amount;
+		
+		// Retrieve the fund currency in the destination fund. If it doesn't exist, create a new one.  
+		var toFundCurrency = toFund.FundCurrencies.SingleOrDefault(currency => currency.CurrencyId == info.Currency);
+		if (toFundCurrency == null) {
+			toFundCurrency = new() { FundId = info.Destination, CurrencyId = info.Currency, Amount = info.Amount };
+			toFund.FundCurrencies.Add(toFundCurrency); // Add new currency record if it didn't exist.  
+		} else
+			// Increase the amount in the existing currency record of the destination fund.  
+			toFundCurrency.Amount += info.Amount;
 		
 		// Create DTOs for both funds to return in the response.  
 		var fromFundDto = CreateFundDto(fromFund);
@@ -157,9 +142,6 @@ public class FundService(AppDbContext dbContext) {
 		// Deduct the withdrawal amount from the fund's currency.  
 		if (currency.Amount - info.Amount is 0) dbContext.FundCurrencies.Remove(currency);
 		else currency.Amount -= info.Amount;
-		
-		// Save the changes to the database asynchronously.  
-		await dbContext.SaveChangesAsync();
 		
 		// Create and return a successful response containing the updated fund details.  
 		return new(OK, CreateFundDto(fund));
@@ -201,9 +183,6 @@ public class FundService(AppDbContext dbContext) {
 			// If the currency already exists, simply increase its amount.  
 			currency.Amount += info.Amount;
 		
-		// Save the changes to the database asynchronously.  
-		await dbContext.SaveChangesAsync();
-		
 		// Create and return a successful response containing the updated fund details.  
 		return new(OK, CreateFundDto(fund));
 	}
@@ -230,9 +209,6 @@ public class FundService(AppDbContext dbContext) {
 		// Attach the user to the fund.  
 		fund.User = user;
 		
-		// Save the changes to the database asynchronously.  
-		await dbContext.SaveChangesAsync();
-		
 		// Return a successful response containing the updated fund details.  
 		return new(OK, CreateFundDto(fund));
 	}
@@ -254,9 +230,6 @@ public class FundService(AppDbContext dbContext) {
 		
 		// Remove all associated FundCurrencies for this fund.  
 		dbContext.FundCurrencies.RemoveRange(dbContext.FundCurrencies.Where(entity => entity.FundId == id));
-		
-		// Save all changes to the database asynchronously.  
-		await dbContext.SaveChangesAsync();
 		
 		// Return a successful response containing the deleted fund's details.  
 		return new(OK, CreateFundDto(fund));

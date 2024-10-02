@@ -105,7 +105,6 @@ public class ActivityLogService(AppDbContext dbContext) {
 		
 		// Add the log to the database and save changes
 		await dbContext.ActivityLogs.AddAsync(log);
-		await dbContext.SaveChangesAsync();
 	}
 	
 }

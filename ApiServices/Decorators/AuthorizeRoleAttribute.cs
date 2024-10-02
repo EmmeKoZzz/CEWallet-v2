@@ -19,11 +19,8 @@ public class AuthorizeFilter(AuthService authService, UserRole.Type[]? requiredR
 		if (requiredRoles == null) return;
 		
 		try {
-			var (status, _, _) = await authService.Authorize(context.HttpContext, requiredRoles);
-			if (status != HttpStatusCode.OK)
-				context.Result = new UnauthorizedObjectResult(
-					new Response<string>(status, Detail: "Unauthorized (user attempting to register without administrator privileges).")
-				);
+			var (status, _, message) = await authService.Authorize(context.HttpContext, requiredRoles);
+			if (status != HttpStatusCode.OK) context.Result = new UnauthorizedObjectResult(new Response<string>(status, Detail: message));
 			else await next();
 		} catch (Exception error) {
 			context.Result =
