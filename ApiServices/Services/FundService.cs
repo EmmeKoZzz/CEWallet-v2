@@ -274,7 +274,7 @@ public class FundService(AppDbContext dbContext) {
 		fund.LocationUrl,
 		fund.Address,
 		fund.Details,
-		fund.FundCurrencies?.Select(c => new FundCurrencyInfo(c.Currency.Name, c.Amount)),
+		fund.FundCurrencies?.Select(c => new FundDto.CurrencyAmount(c.Currency.Name, c.Amount)),
 		fund.User is { }
 			? new UserDto(fund.User.Id, fund.User.Username, fund.User.Role.Name, fund.User.CreatedAt)
 			: default

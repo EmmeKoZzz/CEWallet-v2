@@ -33,7 +33,7 @@ public class AuthController(AuthService authService) : ControllerBase {
 	/// <response code="200">Successful refresh. Returns the new access token and refresh token.</response>
 	/// <response code="401">Unauthorized. The refresh token is invalid or expired.</response>
 	[HttpPost("refresh")]
-	public async Task<ActionResult<Response<AuthResponseDto>>> RefreshToken([FromBody] Tokens request) {
+	public async Task<ActionResult<Response<AuthResponseDto>>> RefreshToken([FromBody] AuthService.Tokens request) {
 		try {
 			var (status, authResponse, message) = await authService.RefreshTokens(request);
 			

@@ -17,8 +17,10 @@ namespace ApiServices.Services;
 
 public class AuthService(IConfiguration configuration, AppDbContext dbContext, RoleService roleService, UserService userService) {
 	
-	static readonly Dictionary<string, string> Tokens = [];
+	static readonly Dictionary<string, string> TokenRegistry = [];
 	static readonly JwtSecurityTokenHandler TokenHandler = new();
+	
+	public record Tokens(string SigninToken, string RefreshToken);
 	
 	/// <summary>Creates and configures TokenValidationParameters for JWT validation.</summary>
 	/// <param name="key">The secret key used for validating the token signature.</param>
@@ -64,7 +66,7 @@ public class AuthService(IConfiguration configuration, AppDbContext dbContext, R
 		await Task.WhenAll(tasks);
 		string signinToken = await tasks[0], refreshToken = await tasks[1];
 		
-		Tokens.Add(refreshToken, signinToken);
+		TokenRegistry.Add(refreshToken, signinToken);
 		
 		return new(signinToken, refreshToken);
 		
@@ -122,8 +124,14 @@ public class AuthService(IConfiguration configuration, AppDbContext dbContext, R
 	/// and generates new tokens if the validation is successful.</remarks>
 	public async Task<ServiceFlag<AuthResponseDto>> RefreshTokens(Tokens request) {
 		
-		if (Tokens.TryGetValue(request.RefreshToken, out var st) && request.SigninToken != st)
+		if (!TokenRegistry.TryGetValue(request.RefreshToken, out var storeToken))
 			return new(HttpStatusCode.Unauthorized, Message: "Invalid token.");
+		
+		if (request.SigninToken != storeToken) {
+			TokenRegistry.Remove(request.RefreshToken);
+			
+			return new(HttpStatusCode.Unauthorized, Message: "Invalid token.");
+		}
 		
 		var refreshTokenValidation = await TokenHandler.ValidateTokenAsync(
 			request.RefreshToken,

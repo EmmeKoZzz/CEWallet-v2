@@ -7,8 +7,10 @@ public record FundDto(
 	string? LocationUrl = default,
 	string? Address = default,
 	string? Details = default,
-	IEnumerable<FundCurrencyInfo>? Currencies = default,
+	IEnumerable<FundDto.CurrencyAmount>? Currencies = default,
 	UserDto? User = default
-);
-
-public record FundCurrencyInfo(string Name, double Amount);
+) {
+	
+	public record CurrencyAmount(string Currency, double Amount);
+	
+}

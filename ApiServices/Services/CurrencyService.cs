@@ -188,7 +188,7 @@ public class CurrencyService(AppDbContext dbContext) {
 						currencies.Fund.Address,
 						currencies.Fund.Details,
 						currencies.Fund.FundCurrencies.Select(
-							currency => new FundCurrencyInfo(currency.Currency.Name, currency.Amount)
+							currency => new FundDto.CurrencyAmount(currency.Currency.Name, currency.Amount)
 						) // Map FundCurrency information.  
 					)
 				).
