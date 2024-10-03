@@ -17,13 +17,13 @@ public class AuthController(AuthService authService) : ControllerBase {
 	/// <response code="401"> Invalid or expired token. </response>
 	/// <response code="200"> Token is valid, and user information is returned. </response>
 	[HttpGet]
-	public async Task<ActionResult<Response<TokenValidationDto>>> ValidateToken() {
+	public async Task<ActionResult<BaseDto<TokenValidationDto>>> ValidateToken() {
 		try {
 			var (status, response, _) = await authService.Authorize(HttpContext);
 			
 			return status switch {
 				HttpStatusCode.Unauthorized => this.CustomUnauthorized(detail: "Invalid or expired token."),
-				HttpStatusCode.OK => this.CustomOk(response)
+				HttpStatusCode.OK => this.CustomOk(new TokenValidationDto(response!.Username, response.Role.Name))
 			};
 		} catch (Exception e) { return this.InternalError(e.Message); }
 	}
@@ -33,7 +33,7 @@ public class AuthController(AuthService authService) : ControllerBase {
 	/// <response code="200">Successful refresh. Returns the new access token and refresh token.</response>
 	/// <response code="401">Unauthorized. The refresh token is invalid or expired.</response>
 	[HttpPost("refresh")]
-	public async Task<ActionResult<Response<AuthResponseDto>>> RefreshToken([FromBody] AuthService.Tokens request) {
+	public async Task<ActionResult<BaseDto<AuthResponseDto>>> RefreshToken([FromBody] AuthService.Tokens request) {
 		try {
 			var (status, authResponse, message) = await authService.RefreshTokens(request);
 			
@@ -49,14 +49,14 @@ public class AuthController(AuthService authService) : ControllerBase {
 	/// <response code="401"> Incorrect password. </response>
 	/// <response code="404"> User not found. </response>
 	[HttpPost("login")]
-	public async Task<ActionResult<Response<AuthResponseDto>>> LoginUser([FromBody] LoginUserDto credentials) {
+	public async Task<ActionResult<BaseDto<AuthResponseDto>>> LoginUser([FromBody] LoginUserDto credentials) {
 		try {
 			var (status, user, _) = await authService.LoginUser(credentials);
 			
 			return status switch {
 				HttpStatusCode.Unauthorized => this.CustomUnauthorized(detail: "Incorrect password."),
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: "User not found."),
-				HttpStatusCode.OK => Ok(new Response<AuthResponseDto>(status, user))
+				HttpStatusCode.OK => Ok(new BaseDto<AuthResponseDto>(status, user))
 			};
 		} catch (Exception e) { return this.InternalError(e.Message); }
 	}
@@ -68,7 +68,7 @@ public class AuthController(AuthService authService) : ControllerBase {
 	/// <response code="404"> Invalid role specified (role doesn't exist). </response>
 	/// <response code="200"> User registered successfully. </response>
 	[HttpPost("register"), AuthorizeRole(UserRole.Type.Administrator)]
-	public async Task<ActionResult<Response<UserDto>>?> RegisterUser([FromBody] RegisterUserDto userDtoDetails) {
+	public async Task<ActionResult<BaseDto<UserDto>>?> RegisterUser([FromBody] RegisterUserDto userDtoDetails) {
 		try {
 			var (status, user, _) = await authService.RegisterUser(userDtoDetails);
 			

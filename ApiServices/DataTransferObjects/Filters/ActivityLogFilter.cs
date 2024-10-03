@@ -1,6 +1,6 @@
-namespace ApiServices.DataTransferObjects;
+namespace ApiServices.DataTransferObjects.Filters;
 
-public record ActivityLogFilterDto(
+public record ActivityLogFilter(
 	DateTime? Since = default,
 	DateTime? Until = default,
 	string[]? FundTransaction = default,
@@ -9,7 +9,7 @@ public record ActivityLogFilterDto(
 	bool Desc = true,
 	double? AmountMin = default,
 	double? AmountMax = default,
-	Guid[]? Funds = default,
-	Guid[]? Users = default,
-	Guid? Currency = default
+	string[]? Funds = default,
+	string[]? Users = default,
+	Guid[]? Currencies = default
 );

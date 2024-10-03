@@ -89,7 +89,7 @@ public class AuthService(IConfiguration configuration, AppDbContext dbContext, R
 	/// <param name="http">The HttpContext containing the authorization header.</param>
 	/// <param name="rolesRequired">Optional. The roles required for authorization.</param>
 	/// <returns>A ServiceFlag containing the authorization result and user information if successful.</returns>
-	public async Task<ServiceFlag<TokenValidationDto?>> Authorize(HttpContext http, IEnumerable<UserRole.Type>? rolesRequired = null) {
+	public async Task<ServiceFlag<User>> Authorize(HttpContext http, IEnumerable<UserRole.Type>? rolesRequired = null) {
 		var authorizationHeader = http.Request.Headers.Authorization;
 		const string message = "Unauthorized (user attempting to register without administrator privileges).";
 		
@@ -112,7 +112,7 @@ public class AuthService(IConfiguration configuration, AppDbContext dbContext, R
 		if (user.Value is not { }) return new(HttpStatusCode.Unauthorized, Message: message);
 		
 		if (rolesRequired == null || !rolesRequired.Any() || rolesRequired.Contains(UserRole.Value(role)))
-			return new(HttpStatusCode.OK, new(user.Value, role));
+			return new(HttpStatusCode.OK, user.Value);
 		
 		return new(HttpStatusCode.Unauthorized, Message: message);
 	}

@@ -17,7 +17,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 	/// <response code="200">Successful retrieval of funds.</response>
 	/// <response code="401">Unauthorized access.</response>
 	[HttpGet, AuthorizeRole(UserRole.Type.Administrator, UserRole.Type.Supervisor)]
-	public async Task<ActionResult<Response<FundDto[]>>> GetAll() {
+	public async Task<ActionResult<BaseDto<FundDto[]>>> GetAll() {
 		try { return this.CustomOk(await funds.GetAll()); } catch (Exception e) { return this.InternalError(e.Message); }
 	}
 	
@@ -27,7 +27,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 	/// <response code="401">Unauthorized access.</response>
 	/// <response code="404">Fund not found.</response>
 	[HttpGet("{id:guid}"), AuthorizeRole]
-	public async Task<ActionResult<Response<FundDto>>> Get([FromRoute] Guid id) {
+	public async Task<ActionResult<BaseDto<FundDto>>> Get([FromRoute] Guid id) {
 		try {
 			var res = await funds.Get(id);
 			
@@ -42,7 +42,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 	/// <response code="200">Successful retrieval of the user's funds.</response>
 	/// <response code="401">Unauthorized access.</response>
 	[HttpGet("user/{id:guid}"), AuthorizeRole]
-	public async Task<ActionResult<Response<FundDto[]>>> GetUserFunds([FromRoute] Guid id) {
+	public async Task<ActionResult<BaseDto<FundDto[]>>> GetUserFunds([FromRoute] Guid id) {
 		try { return this.CustomOk(await funds.GetByUser(id)); } catch (Exception e) { return this.InternalError(e.Message); }
 	}
 	
@@ -52,7 +52,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 	/// <response code="400">Invalid fund information.</response>
 	/// <response code="401">Unauthorized access.</response>
 	[HttpPost]
-	public async Task<ActionResult<Response<FundDto>>> Add([FromBody] AddFundDto info) {
+	public async Task<ActionResult<BaseDto<FundDto>>> Add([FromBody] AddFundDto info) {
 		var (validation, userSession, _) = await auth.Authorize(HttpContext, [UserRole.Type.Administrator]);
 		
 		if (validation is not HttpStatusCode.OK)
@@ -61,7 +61,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 		await using var trx = await dbContext.Database.BeginTransactionAsync();
 		try {
 			var res = await funds.Add(info);
-			await logs.Log(FundActivity.Type.CreateFund, res.Id, userSession!.User.Id, details: info.Details);
+			await logs.Log(FundActivity.Type.CreateFund, res.Id, userSession!.Id, details: info.Details);
 			await dbContext.SaveChangesAsync();
 			await trx.CommitAsync();
 			
@@ -81,7 +81,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 	/// <response code="401">Unauthorized access.</response>
 	/// <response code="404">Fund not found.</response>
 	[HttpPatch("{id:guid}"), AuthorizeRole(UserRole.Type.Administrator)]
-	public async Task<ActionResult<Response<FundDto>>> Update([FromBody] AddFundDto info, [FromRoute] Guid id) {
+	public async Task<ActionResult<BaseDto<FundDto>>> Update([FromBody] AddFundDto info, [FromRoute] Guid id) {
 		try {
 			var res = await funds.Update(info, id);
 			await dbContext.SaveChangesAsync();
@@ -99,7 +99,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 	/// <response code="401">The user is not authorized to perform this action.</response>
 	/// <response code="404">The source or destination account does not exist.</response>
 	[HttpPost("transfer")]
-	public async Task<ActionResult<Response<TransferDto.Response>>> Transfer([FromBody] TransferDto info) {
+	public async Task<ActionResult<BaseDto<TransferDto.Response>>> Transfer([FromBody] TransferDto info) {
 		var (validation, userSession, _) = await auth.Authorize(HttpContext, [UserRole.Type.Administrator, UserRole.Type.Supervisor]);
 		
 		if (validation is not HttpStatusCode.OK)
@@ -118,7 +118,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 			await logs.Log(
 				FundActivity.Type.Transfer,
 				res.Value!.Source.Id,
-				userSession!.User.Id,
+				userSession!.Id,
 				FundTransaction.Type.Withdrawal,
 				currency: info.Currency,
 				amount: info.Amount,
@@ -127,8 +127,8 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 			
 			await logs.Log(
 				FundActivity.Type.Transfer,
-				res.Value!.Source.Id,
-				userSession!.User.Id,
+				res.Value!.Destination.Id,
+				userSession.Id,
 				FundTransaction.Type.Deposit,
 				currency: info.Currency,
 				amount: info.Amount,
@@ -153,7 +153,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 	/// <response code="401">The user is not authorized to perform this action.</response>
 	/// <response code="404">Account not found.</response>
 	[HttpPost("withdrawal")]
-	public async Task<ActionResult<Response<FundDto>>> Withdraw([FromBody] TransactionDto info) {
+	public async Task<ActionResult<BaseDto<FundDto>>> Withdraw([FromBody] TransactionDto info) {
 		var (validation, userSession, _) = await auth.Authorize(HttpContext);
 		
 		if (validation is not HttpStatusCode.OK)
@@ -172,7 +172,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 			await logs.Log(
 				FundActivity.Type.Withdrawal,
 				res.Value!.Id,
-				userSession!.User.Id,
+				userSession!.Id,
 				currency: info.Currency,
 				transactionType: FundTransaction.Type.Withdrawal,
 				amount: info.Amount,
@@ -197,7 +197,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 	/// <response code="401">The user is not authorized to perform this action.</response>
 	/// <response code="404">Account not found.</response>
 	[HttpPost("deposit")]
-	public async Task<ActionResult<Response<FundDto>>> Deposit([FromBody] TransactionDto info) {
+	public async Task<ActionResult<BaseDto<FundDto>>> Deposit([FromBody] TransactionDto info) {
 		var (validation, userSession, _) = await auth.Authorize(HttpContext, [UserRole.Type.Administrator]);
 		
 		if (validation is not HttpStatusCode.OK)
@@ -216,7 +216,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 			await logs.Log(
 				FundActivity.Type.Deposit,
 				res.Value!.Id,
-				userSession!.User.Id,
+				userSession!.Id,
 				currency: info.Currency,
 				transactionType: FundTransaction.Type.Deposit,
 				amount: info.Amount,
@@ -241,7 +241,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 	/// <response code="401">The user is not authorized to perform this action.</response>
 	/// <response code="404">Fund or user not found.</response>
 	[HttpPatch("attach-user/{fundId:guid}/{userId:guid}"), AuthorizeRole(UserRole.Type.Administrator)]
-	public async Task<ActionResult<Response<object>>> AddUser(Guid fundId, Guid userId) {
+	public async Task<ActionResult<BaseDto<object>>> AddUser(Guid fundId, Guid userId) {
 		try {
 			var res = await funds.AttachUser(userId, fundId);
 			await dbContext.SaveChangesAsync();
@@ -258,7 +258,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 	/// <response code="401">The user is not authorized to perform this action.</response>
 	/// <response code="404">No fund is found with the specified identifier.</response>  
 	[HttpDelete("{id:guid}")]
-	public async Task<ActionResult<Response<object>>> Delete([FromRoute] Guid id) {
+	public async Task<ActionResult<BaseDto<object>>> Delete([FromRoute] Guid id) {
 		var (validation, userSession, _) = await auth.Authorize(HttpContext, [UserRole.Type.Administrator]);
 		
 		if (validation is not HttpStatusCode.OK)
@@ -269,7 +269,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 			var res = await funds.Delete(id);
 			
 			if (res.Status is HttpStatusCode.NotFound) return this.CustomNotFound(detail: res.Message);
-			await logs.Log(FundActivity.Type.DeleteFund, res.Value!.Id, userSession!.User.Id);
+			await logs.Log(FundActivity.Type.DeleteFund, res.Value!.Id, userSession!.Id);
 			
 			await dbContext.SaveChangesAsync();
 			await trx.CommitAsync();

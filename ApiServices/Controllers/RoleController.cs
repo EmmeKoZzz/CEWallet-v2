@@ -14,7 +14,7 @@ public class RoleController(RoleService roleService) : ControllerBase {
 	/// <summary> Retrieves a list of all available user roles. </summary>
 	/// <response code="401"> Unauthorized (user attempting to access without administrator privileges). </response>
 	[HttpGet, AuthorizeRole(UserRole.Type.Administrator)]
-	public async Task<ActionResult<Response<IEnumerable<RoleDto>>>> GetAll() {
+	public async Task<ActionResult<BaseDto<IEnumerable<RoleDto>>>> GetAll() {
 		try { return this.CustomOk((await roleService.GetAll()).Select(role => new RoleDto(role.Id, role.Name))); } catch (Exception e) {
 			return this.InternalError(e.Message);
 		}
@@ -24,7 +24,7 @@ public class RoleController(RoleService roleService) : ControllerBase {
 	/// <response code="401"> Unauthorized (user attempting to access without administrator privileges). </response>
 	/// <response code="404"> Invalid role specified (role doesn't exist). </response>
 	[HttpGet("{id:guid}"), AuthorizeRole(UserRole.Type.Administrator)]
-	public async Task<ActionResult<Response<RoleDto>>> GetById([FromRoute] Guid id) {
+	public async Task<ActionResult<BaseDto<RoleDto>>> GetById([FromRoute] Guid id) {
 		try {
 			var (status, role, _) = await roleService.FindById(id);
 			

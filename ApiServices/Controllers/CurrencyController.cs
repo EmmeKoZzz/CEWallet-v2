@@ -20,7 +20,7 @@ public class CurrencyController(ActivityLogService logService, AuthService auth,
 	/// <response code="400"> Bad request (e.g., invalid data in request body). </response>
 	/// <response code="401"> Unauthorized (missing or invalid authorization token). </response>
 	[HttpGet, AuthorizeRole(UserRole.Type.Administrator)]
-	public async Task<ActionResult<Response<IEnumerable<CurrencyDto>>>> GetAll([FromQuery] bool funds = false) {
+	public async Task<ActionResult<BaseDto<IEnumerable<CurrencyDto>>>> GetAll([FromQuery] bool funds = false) {
 		try { return this.CustomOk(await currency.GetAll(funds)); } catch (Exception e) { return this.InternalError(e.Message); }
 	}
 	
@@ -29,7 +29,7 @@ public class CurrencyController(ActivityLogService logService, AuthService auth,
 	/// <response code="200">Currency added successfully.</response>
 	/// <response code="401">Unauthorized (missing or invalid authorization token).</response>
 	[HttpPost, AuthorizeRole(UserRole.Type.Administrator)]
-	public async Task<ActionResult<Response<CurrencyDto>>> Add(AddCurrencyDto info) {
+	public async Task<ActionResult<BaseDto<CurrencyDto>>> Add(AddCurrencyDto info) {
 		try {
 			var res = await currency.Add(info);
 			await dbContext.SaveChangesAsync();
@@ -47,7 +47,7 @@ public class CurrencyController(ActivityLogService logService, AuthService auth,
 	/// <response code="401">Unauthorized (missing or invalid authorization token).</response>
 	/// <response code="404">Currency not found.</response>
 	[HttpPut("{id:guid}"), AuthorizeRole(UserRole.Type.Administrator)]
-	public async Task<ActionResult<Response<CurrencyDto>>> Update([FromBody] AddCurrencyDto info, [FromRoute] Guid id) {
+	public async Task<ActionResult<BaseDto<CurrencyDto>>> Update([FromBody] AddCurrencyDto info, [FromRoute] Guid id) {
 		try {
 			var (status, res, _) = await currency.Update(info, id);
 			await dbContext.SaveChangesAsync();
@@ -84,7 +84,7 @@ public class CurrencyController(ActivityLogService logService, AuthService auth,
 				data => logService.Log(
 					FundActivity.Type.DeleteCurrency,
 					data.Item1, // Fund ID 
-					validation.Value!.User.Id,
+					validation.Value!.Id,
 					FundTransaction.Type.Withdrawal,
 					data.Item2 // Currency Amount
 				)

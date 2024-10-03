@@ -20,11 +20,11 @@ public class AuthorizeFilter(AuthService authService, UserRole.Type[]? requiredR
 		
 		try {
 			var (status, _, message) = await authService.Authorize(context.HttpContext, requiredRoles);
-			if (status != HttpStatusCode.OK) context.Result = new UnauthorizedObjectResult(new Response<string>(status, Detail: message));
+			if (status != HttpStatusCode.OK) context.Result = new UnauthorizedObjectResult(new BaseDto<string>(status, Detail: message));
 			else await next();
 		} catch (Exception error) {
 			context.Result =
-				new ObjectResult(new Response<string>(HttpStatusCode.InternalServerError, Detail: error.Message)) { StatusCode = 500 };
+				new ObjectResult(new BaseDto<string>(HttpStatusCode.InternalServerError, Detail: error.Message)) { StatusCode = 500 };
 		}
 	}
 	
