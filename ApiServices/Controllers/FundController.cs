@@ -3,6 +3,7 @@ using ApiServices.Configuration;
 using ApiServices.Constants;
 using ApiServices.DataTransferObjects;
 using ApiServices.DataTransferObjects.ApiResponses;
+using ApiServices.DataTransferObjects.Filters;
 using ApiServices.Decorators;
 using ApiServices.Helpers;
 using ApiServices.Services;
@@ -16,9 +17,13 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 	/// <summary> Retrieves all funds. Only administrators and Supervisors are allowed to perform this action.</summary>
 	/// <response code="200">Successful retrieval of funds.</response>
 	/// <response code="401">Unauthorized access.</response>
-	[HttpGet, AuthorizeRole(UserRole.Type.Administrator, UserRole.Type.Supervisor)]
-	public async Task<ActionResult<BaseDto<FundDto[]>>> GetAll() {
-		try { return this.CustomOk(await funds.GetAll()); } catch (Exception e) { return this.InternalError(e.Message); }
+	[HttpPost, AuthorizeRole(UserRole.Type.Administrator, UserRole.Type.Supervisor)]
+	public async Task<ActionResult<BaseDto<FundDto[]>>> GetAll(
+		[FromQuery] int page = 0,
+		[FromQuery] int size = 10,
+		[FromBody] FundFilter? filter = default
+	) {
+		try { return this.CustomOk(await funds.GetAllDev(page, size, filter)); } catch (Exception e) { return this.InternalError(e.Message); }
 	}
 	
 	/// <summary> Retrieves a specific fund by its ID. </summary>
@@ -51,7 +56,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 	/// <response code="200">Successful addition of the fund.</response>
 	/// <response code="400">Invalid fund information.</response>
 	/// <response code="401">Unauthorized access.</response>
-	[HttpPost]
+	[HttpPost("create")]
 	public async Task<ActionResult<BaseDto<FundDto>>> Add([FromBody] AddFundDto info) {
 		var (validation, userSession, _) = await auth.Authorize(HttpContext, [UserRole.Type.Administrator]);
 		

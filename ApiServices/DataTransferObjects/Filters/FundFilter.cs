@@ -6,12 +6,14 @@ public record FundFilter(
 	Guid[]? Currencies = default,
 	bool Descending = default,
 	string? OrderBy = default
-);
-
-public static class FundFilterOrderBy {
+) {
 	
-	public const string Funds = "funds";
-	public const string Usernames = "usernames";
-	public const string Currencies = "currencies";
+	public static class OrderByOptions {
+		
+		public const string Funds = "funds";
+		public const string Usernames = "usernames";
+		public const string CreateAt = "create_at";
+		
+	}
 	
 }

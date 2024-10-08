@@ -3,8 +3,8 @@ namespace ApiServices.DataTransferObjects.Filters;
 public record ActivityLogFilter(
 	DateTime? Since = default,
 	DateTime? Until = default,
-	string[]? FundTransaction = default,
-	string[]? Activity = default,
+	string[]? FundTransactions = default,
+	string[]? Activities = default,
 	bool AmountOrCreateDate = default,
 	bool Desc = true,
 	double? AmountMin = default,

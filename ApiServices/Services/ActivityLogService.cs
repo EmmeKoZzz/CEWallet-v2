@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using ApiServices.Configuration;
 using ApiServices.Constants;
 using ApiServices.DataTransferObjects.ApiResponses;
@@ -10,6 +11,8 @@ namespace ApiServices.Services;
 
 public class ActivityLogService(AppDbContext dbContext) {
 	
+	DbSet<ActivityLog> Repo { get; } = dbContext.ActivityLogs;
+	
 	/// <summary> Retrieves a paginated list of activity logs based on specified filters and ordering.</summary>
 	/// <param name="page">The zero-based page number of the results to retrieve.</param>
 	/// <param name="limit">The maximum number of items to return per page.</param>
@@ -19,10 +22,7 @@ public class ActivityLogService(AppDbContext dbContext) {
 	/// representing the paginated list of activity logs matching the specified criteria.
 	/// </returns>
 	public async Task<PaginationDto<ActivityLogDto>> GetAll(int page, int limit, ActivityLogFilter? filter = null) {
-		var query = dbContext.ActivityLogs.Include(entity => entity.User).
-			Include(entity => entity.Fund).
-			Include(entity => entity.Currency).
-			AsQueryable();
+		var query = Repo.Include(entity => entity.User).Include(entity => entity.Fund).Include(entity => entity.Currency).AsQueryable();
 		
 		ApplyFilters();
 		ApplyOrdering();
@@ -38,14 +38,21 @@ public class ActivityLogService(AppDbContext dbContext) {
 			if (filter.Until.HasValue) query = query.Where(entity => entity.CreatedAt <= filter.Until);
 			if (filter.AmountMin.HasValue) query = query.Where(entity => entity.Amount >= filter.AmountMin);
 			if (filter.AmountMax.HasValue) query = query.Where(entity => entity.Amount <= filter.AmountMax);
-			// TODO se debe filtrar si contiene la palabra, no si es la palabra -START-
-			if (filter.Funds?.Length > 0) query = query.Where(entity => filter.Funds.Contains(entity.Fund.Name));
-			if (filter.Users?.Length > 0) query = query.Where(entity => filter.Users.Contains(entity.User.Username));
-			// -END-
-			if (filter.Activity?.Length > 0) query = query.Where(entity => filter.Activity.Contains(entity.Activity));
-			if (filter.FundTransaction?.Length > 0) query = query.Where(entity => filter.FundTransaction.Contains(entity.TransactionType));
-			if (filter.Currencies?.Length > 0)
-				query = query.Where(entity => entity.CurrencyId != null && filter.Currencies.Contains(entity.CurrencyId.Value));
+			if (filter.Activities?.Length > 0) query = query.Where(entity => filter.Activities.Contains(entity.Activity));
+			if (filter.FundTransactions?.Length > 0) query = query.Where(entity => filter.FundTransactions.Contains(entity.TransactionType));
+			if (filter.Currencies?.Length > 0) query = query.Where(entity => filter.Currencies.Contains(entity.CurrencyId ?? new Guid()));
+			
+			if (filter.Funds?.Length > 0) {
+				Expression<Func<ActivityLog, bool>> condition = log => log.Fund.Name.Contains(filter.Funds[0]);
+				condition = filter.Funds.Aggregate(condition, (c, fundName) => c.Or(log => log.Fund.Name.Contains(fundName)));
+				query = query.Where(condition);
+			}
+			
+			if (filter.Users?.Length > 0) {
+				Expression<Func<ActivityLog, bool>> condition = log => log.User.Username.Contains(filter.Users[0]);
+				condition = filter.Users.Aggregate(condition, (c, username) => c.Or(log => log.User.Username.Contains(username)));
+				query = query.Where(condition);
+			}
 		}
 		
 		void ApplyOrdering() {
@@ -93,7 +100,7 @@ public class ActivityLogService(AppDbContext dbContext) {
 		};
 		
 		// Add the log to the database and save changes
-		await dbContext.ActivityLogs.AddAsync(log);
+		await Repo.AddAsync(log);
 	}
 	
 	static ActivityLogDto MapToActivityLogDto(ActivityLog entity) {

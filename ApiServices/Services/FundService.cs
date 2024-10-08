@@ -1,6 +1,9 @@
+using System.Linq.Expressions;
 using ApiServices.Configuration;
 using ApiServices.DataTransferObjects;
 using ApiServices.DataTransferObjects.ApiResponses;
+using ApiServices.DataTransferObjects.Filters;
+using ApiServices.Helpers;
 using ApiServices.Helpers.Structs;
 using ApiServices.Models;
 using Microsoft.EntityFrameworkCore;
@@ -10,10 +13,60 @@ namespace ApiServices.Services;
 
 public class FundService(AppDbContext dbContext) {
 	
+	DbSet<Fund> Repo { get; } = dbContext.Funds;
+	
+	public async Task<PaginationDto<FundDto>> GetAllDev(int page, int size, FundFilter? filter) {
+		var query = Repo.Where(entity => entity.Active).AsQueryable();
+		
+		ApplyFilters();
+		ApplyOrdering();
+		
+		var res = await query.Skip(page * size).Take(size).ToArrayAsync();
+		
+		return new(res.Select(CreateFundDto), page, size, await query.CountAsync());
+		
+		void ApplyFilters() {
+			if (filter == null) return;
+			if (filter.FundNames?.Length > 0) {
+				Expression<Func<Fund, bool>> cond = fund => fund.Name.Contains(filter.FundNames[0]);
+				cond = filter.FundNames.Skip(1).Aggregate(cond, (c, fn) => c.Or(fund => fund.Name.Contains(fn)));
+				query = query.Where(cond);
+			}
+			
+			if (filter.Usernames?.Length > 0) {
+				Expression<Func<Fund, bool>> cond = fund => fund.User != null && fund.User.Username.Contains(filter.Usernames[0]);
+				cond = filter.Usernames.Skip(1).Aggregate(cond, (c, n) => c.Or(fund => fund.User != null && fund.User.Username.Contains(n)));
+				query = query.Where(cond);
+			}
+			
+			if (filter.Currencies?.Length > 0) {
+				Expression<Func<Fund, bool>> cond = fund => fund.FundCurrencies.Any(c => c.CurrencyId == filter.Currencies[0]);
+				cond = filter.Currencies.Aggregate(
+					cond,
+					(c, currencyId) => c.Or(fund => fund.FundCurrencies.Any(fc => fc.CurrencyId == currencyId))
+				);
+				
+				query = query.Where(cond);
+			}
+		}
+		
+		void ApplyOrdering() {
+			query = filter?.OrderBy switch {
+				FundFilter.OrderByOptions.Usernames when filter.Descending =>
+					query.OrderByDescending(entity => (entity.User ?? new User()).Username),
+				FundFilter.OrderByOptions.Usernames when !filter.Descending => query.OrderBy(entity => (entity.User ?? new User()).Username),
+				FundFilter.OrderByOptions.CreateAt when filter.Descending => query.OrderByDescending(entity => entity.CreatedAt),
+				FundFilter.OrderByOptions.CreateAt when !filter.Descending => query.OrderBy(entity => entity.CreatedAt),
+				FundFilter.OrderByOptions.Funds when filter.Descending => query.OrderByDescending(entity => entity.Name),
+				_ => query.OrderBy(entity => entity.Name)
+			};
+		}
+	}
+	
 	/// <summary> Retrieves a collection of all active funds. </summary>
 	/// <returns>An array of FundDto objects representing all active funds.</returns>
 	public async Task<IEnumerable<FundDto>> GetAll() {
-		var res = await dbContext.Funds.Where(entity => entity.Active).ToArrayAsync();
+		var res = await Repo.Where(entity => entity.Active).ToArrayAsync();
 		
 		return res.Select(CreateFundDto);
 	}
@@ -23,7 +76,7 @@ public class FundService(AppDbContext dbContext) {
 	/// <returns>A ServiceFlag object containing either a FundDto representing the retrieved fund on success (with OK), 
 	/// or null with NotFound if the fund is not found.</returns>
 	public async Task<ServiceFlag<FundDto>> Get(Guid id) {
-		var res = await dbContext.Funds.Include(entity => entity.User).
+		var res = await Repo.Include(entity => entity.User).
 			ThenInclude(entity => entity!.Role).
 			Include(fund => fund.FundCurrencies).
 			ThenInclude(fundCurrency => fundCurrency.Currency).
@@ -39,7 +92,7 @@ public class FundService(AppDbContext dbContext) {
 	/// <returns>An array of FundDto objects representing all funds owned by the user, 
 	/// or an empty array if the user has no funds.</returns>
 	public async Task<IEnumerable<FundDto>> GetByUser(Guid id) {
-		var res = await dbContext.Funds.Where(entity => entity.Active && entity.UserId == id).
+		var res = await Repo.Where(entity => entity.Active && entity.UserId == id).
 			Include(entity => entity.FundCurrencies).
 			ThenInclude(entity => entity.Currency).
 			ToArrayAsync();
@@ -53,7 +106,7 @@ public class FundService(AppDbContext dbContext) {
 	public async Task<FundDto> Add(AddFundDto info) {
 		var fund = new Fund { Name = info.Name, LocationUrl = info.LocationUrl, Address = info.Address, Details = info.Details };
 		
-		await dbContext.Funds.AddAsync(fund);
+		await Repo.AddAsync(fund);
 		
 		return CreateFundDto(fund);
 	}
@@ -64,7 +117,7 @@ public class FundService(AppDbContext dbContext) {
 	/// <returns>A ServiceFlag object containing either a FundDto representing the updated fund on success (with OK), 
 	/// or null with NotFound if the fund is not found.</returns>
 	public async Task<ServiceFlag<FundDto>> Update(AddFundDto info, Guid id) {
-		var fund = await dbContext.Funds.FindAsync(id);
+		var fund = await Repo.FindAsync(id);
 		
 		if (fund == null) return new(NotFound, Message: "Fund not found.");
 		
@@ -83,7 +136,7 @@ public class FundService(AppDbContext dbContext) {
 		if (info.Destination == info.Source) return new(BadRequest, Message: "Destination is the same Source.");
 		
 		// Prepare a query to fetch funds with associated currencies from the database.  
-		var query = dbContext.Funds.Include(entity => entity.FundCurrencies).ThenInclude(entity => entity.Currency);
+		var query = Repo.Include(entity => entity.FundCurrencies).ThenInclude(entity => entity.Currency);
 		
 		// Initiate asynchronous tasks to fetch the source and destination funds.  
 		var (fromFund, toFund) = (await query.SingleOrDefaultAsync(entity => entity.Active && entity.Id == info.Source),
@@ -125,7 +178,7 @@ public class FundService(AppDbContext dbContext) {
 	/// including the FundDto if successful or an error message if unsuccessful.</returns>  
 	public async Task<ServiceFlag<FundDto>> Withdraw(TransactionDto info) {
 		// Retrieve the fund from the database, including its associated currencies.  
-		var fund = await dbContext.Funds.Include(entity => entity.FundCurrencies). // Include related FundCurrency entities  
+		var fund = await Repo.Include(entity => entity.FundCurrencies). // Include related FundCurrency entities  
 			ThenInclude(fundCurrency => fundCurrency.Currency). // Include the Currency details for each FundCurrency  
 			SingleOrDefaultAsync(entity => entity.Active && entity.Id == info.Source); // Search for the fund by ID  
 		
@@ -155,7 +208,7 @@ public class FundService(AppDbContext dbContext) {
 	/// including the FundDto if successful or an error message if unsuccessful.</returns>  
 	public async Task<ServiceFlag<FundDto>> Deposit(TransactionDto info) {
 		// Retrieve the fund from the database, including its associated currencies.  
-		var fund = await dbContext.Funds.Include(entity => entity.FundCurrencies). // Include related FundCurrency entities  
+		var fund = await Repo.Include(entity => entity.FundCurrencies). // Include related FundCurrency entities  
 			ThenInclude(fundCurrency => fundCurrency.Currency). // Include the Currency details for each FundCurrency  
 			SingleOrDefaultAsync(entity => entity.Active && entity.Id == info.Source); // Search for the fund by ID  
 		
@@ -194,7 +247,7 @@ public class FundService(AppDbContext dbContext) {
 	/// including the FundDto if successful or an error message if unsuccessful.</returns>  
 	public async Task<ServiceFlag<FundDto>> AttachUser(Guid userId, Guid fundId) {
 		// Start asynchronous tasks to retrieve both the fund and the user concurrently.  
-		var fundTask = dbContext.Funds.SingleOrDefaultAsync(entity => entity.Active && entity.Id == fundId);
+		var fundTask = Repo.SingleOrDefaultAsync(entity => entity.Active && entity.Id == fundId);
 		var userTask = dbContext.Users.Include(entity => entity.Role).SingleOrDefaultAsync(entity => entity.Id == userId);
 		
 		// Wait for both tasks to complete.  
@@ -219,7 +272,7 @@ public class FundService(AppDbContext dbContext) {
 	/// including the FundDto if successful or a not found message if unsuccessful.</returns>  
 	public async Task<ServiceFlag<FundDto>> Delete(Guid id) {
 		// Retrieve the fund from the database if it exists and is active.  
-		var fund = await dbContext.Funds.SingleOrDefaultAsync(entity => entity.Active && entity.Id == id);
+		var fund = await Repo.SingleOrDefaultAsync(entity => entity.Active && entity.Id == id);
 		
 		// If the fund is not found, return a not found response.  
 		if (fund is null) return new(NotFound, Message: "Fund not found.");
