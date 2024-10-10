@@ -9,14 +9,20 @@
             <response code="401"> Invalid or expired token. </response>
             <response code="200"> Token is valid, and user information is returned. </response>
         </member>
-        <member name="M:ApiServices.Controllers.AuthController.LoginUser(Common.DataTransferObjects.LoginUserDto)">
+        <member name="M:ApiServices.Controllers.AuthController.RefreshToken(ApiServices.Services.AuthService.Tokens)">
+            <summary>Refreshes the access token of an authenticated user.</summary>
+            <param name="request">The request containing the refresh token.</param>
+            <response code="200">Successful refresh. Returns the new access token and refresh token.</response>
+            <response code="401">Unauthorized. The refresh token is invalid or expired.</response>
+        </member>
+        <member name="M:ApiServices.Controllers.AuthController.LoginUser(ApiServices.DataTransferObjects.LoginUserDto)">
             <summary> Logs in a user. </summary>
             <param name="credentials">The user's login credentials.</param>
             <response code="200"> Login successful. </response>
             <response code="401"> Incorrect password. </response>
             <response code="404"> User not found. </response>
         </member>
-        <member name="M:ApiServices.Controllers.AuthController.RegisterUser(Common.DataTransferObjects.RegisterUserDto)">
+        <member name="M:ApiServices.Controllers.AuthController.RegisterUser(ApiServices.DataTransferObjects.RegisterUserDto)">
             <summary> Registers a new user. </summary>
             <param name="userDtoDetails">The details of the user to be registered, including their role.</param>
             <response code="400"> Invalid request (e.g., missing data). </response>
@@ -31,13 +37,13 @@
             <response code="400"> Bad request (e.g., invalid data in request body). </response>
             <response code="401"> Unauthorized (missing or invalid authorization token). </response>
         </member>
-        <member name="M:ApiServices.Controllers.CurrencyController.Add(Common.DataTransferObjects.AddCurrencyDto)">
+        <member name="M:ApiServices.Controllers.CurrencyController.Add(ApiServices.DataTransferObjects.AddCurrencyDto)">
             <summary>Adds a new currency.</summary>
             <param name="info">The details of the currency to be added.</param>
             <response code="200">Currency added successfully.</response>
             <response code="401">Unauthorized (missing or invalid authorization token).</response>
         </member>
-        <member name="M:ApiServices.Controllers.CurrencyController.Update(Common.DataTransferObjects.AddCurrencyDto,System.Guid)">
+        <member name="M:ApiServices.Controllers.CurrencyController.Update(ApiServices.DataTransferObjects.AddCurrencyDto,System.Guid)">
             <summary> Updates an existing currency. </summary>
             <param name="info">The details of the currency to be updated.</param>
             <param name="id">ID of the currency.</param>
@@ -56,7 +62,7 @@
             <summary>Gets the informal foreign exchange rates.</summary>
             <response code="200">Returns a list of informal foreign exchange rates.</response>
         </member>
-        <member name="M:ApiServices.Controllers.FundController.GetAll">
+        <member name="M:ApiServices.Controllers.FundController.GetAll(System.Int32,System.Int32,ApiServices.DataTransferObjects.Filters.FundFilter)">
             <summary> Retrieves all funds. Only administrators and Supervisors are allowed to perform this action.</summary>
             <response code="200">Successful retrieval of funds.</response>
             <response code="401">Unauthorized access.</response>
@@ -74,14 +80,14 @@
             <response code="200">Successful retrieval of the user's funds.</response>
             <response code="401">Unauthorized access.</response>
         </member>
-        <member name="M:ApiServices.Controllers.FundController.Add(Common.DataTransferObjects.AddFundDto)">
+        <member name="M:ApiServices.Controllers.FundController.Add(ApiServices.DataTransferObjects.AddFundDto)">
             <summary> Adds a new fund. Only administrators are allowed to perform this action.</summary>
             <param name="info">The information for the new fund.</param>
             <response code="200">Successful addition of the fund.</response>
             <response code="400">Invalid fund information.</response>
             <response code="401">Unauthorized access.</response>
         </member>
-        <member name="M:ApiServices.Controllers.FundController.Update(Common.DataTransferObjects.AddFundDto,System.Guid)">
+        <member name="M:ApiServices.Controllers.FundController.Update(ApiServices.DataTransferObjects.AddFundDto,System.Guid)">
             <summary> Updates an existing fund. Only administrators are allowed to perform this action.</summary>
             <param name="info">The updated information for the fund.</param>
             <param name="id">The ID of the fund to update.</param>
@@ -90,7 +96,7 @@
             <response code="401">Unauthorized access.</response>
             <response code="404">Fund not found.</response>
         </member>
-        <member name="M:ApiServices.Controllers.FundController.Transfer(Common.DataTransferObjects.TransferDto)">
+        <member name="M:ApiServices.Controllers.FundController.Transfer(ApiServices.DataTransferObjects.TransferDto)">
             <summary> Transfers funds between accounts. Only administrators and Supervisors are allowed to perform this action.</summary>
             <param name="info">The transfer request details, including source and destination accounts, amount, and optional notes.</param>
             <response code="200">The transfer was successful.</response>
@@ -98,7 +104,7 @@
             <response code="401">The user is not authorized to perform this action.</response>
             <response code="404">The source or destination account does not exist.</response>
         </member>
-        <member name="M:ApiServices.Controllers.FundController.Withdraw(Common.DataTransferObjects.TransactionDto)">
+        <member name="M:ApiServices.Controllers.FundController.Withdraw(ApiServices.DataTransferObjects.TransactionDto)">
             <summary> Withdraws funds from a specified account. </summary>
             <param name="info">The withdrawal information.</param>
             <response code="200">Successful withdrawal.</response>
@@ -106,7 +112,7 @@
             <response code="401">The user is not authorized to perform this action.</response>
             <response code="404">Account not found.</response>
         </member>
-        <member name="M:ApiServices.Controllers.FundController.Deposit(Common.DataTransferObjects.TransactionDto)">
+        <member name="M:ApiServices.Controllers.FundController.Deposit(ApiServices.DataTransferObjects.TransactionDto)">
             <summary>Deposits funds into a specified account. Only administrators are allowed to perform this action.</summary>
             <param name="info">The deposit information.</param>
             <response code="200">Successful deposit.</response>
@@ -129,6 +135,12 @@
             <response code="401">The user is not authorized to perform this action.</response>
             <response code="404">No fund is found with the specified identifier.</response>  
         </member>
+        <member name="M:ApiServices.Controllers.LogsController.List(ApiServices.DataTransferObjects.Filters.ActivityLogFilter,System.Nullable{System.Int32},System.Nullable{System.Int32})">
+            <summary> Lists activity logs based on optional filters, page number, and limit. </summary>
+            <param name="filter">Optional filter criteria for activity logs (can be null).</param>
+            <param name="page">The page number (optional).</param>
+            <param name="limit">The number of logs per page (optional).</param>
+        </member>
         <member name="M:ApiServices.Controllers.RoleController.GetAll">
             <summary> Retrieves a list of all available user roles. </summary>
             <response code="401"> Unauthorized (user attempting to access without administrator privileges). </response>
@@ -145,13 +157,13 @@
             <summary> Retrieves a list of user details based on specified criteria. </summary>
              <response code="404"> User not found. </response>
         </member>
-        <member name="M:ApiServices.Controllers.UserController.UpdateUser(Common.DataTransferObjects.RegisterUserDto)">
+        <member name="M:ApiServices.Controllers.UserController.UpdateUser(ApiServices.DataTransferObjects.RegisterUserDto)">
             <summary> Updates the details of a specified user. </summary>
              <response code="400"> Invalid request (e.g., invalid data). </response>
              <response code="401"> Unauthorized. </response>
              <response code="404"> User not found. </response>
         </member>
-        <member name="M:ApiServices.Controllers.UserController.ResetPassword(Common.DataTransferObjects.ResetPasswordDto)">
+        <member name="M:ApiServices.Controllers.UserController.ResetPassword(ApiServices.DataTransferObjects.ResetPasswordDto)">
             <summary> Resets the password for a specified user. </summary>
              <response code="400"> Invalid request (e.g., invalid data). </response>
              <response code="401"> Unauthorized (user attempting to access without administrator privileges or invalid old password). </response>
@@ -174,17 +186,75 @@
         <member name="M:ApiServices.Migrations.init.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
             <inheritdoc />
         </member>
-        <member name="M:ApiServices.Services.AuthService.GenerateToken(System.Security.Claims.ClaimsIdentity)">
-            Generates a JSON Web Token (JWT) based on the provided configuration and identity claims.
+        <member name="T:ApiServices.Migrations.update0">
+            <inheritdoc />
         </member>
-        <member name="M:ApiServices.Services.AuthService.Authorize(Microsoft.AspNetCore.Http.HttpContext,System.Collections.Generic.IEnumerable{Common.Constants.UserRole.Type})">
-            Authorizes a request based on the provided JWT token.
+        <member name="M:ApiServices.Migrations.update0.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
         </member>
-        <member name="M:ApiServices.Services.AuthService.RegisterUser(Common.DataTransferObjects.RegisterUserDto)">
-            Registers a new user in the database.
+        <member name="M:ApiServices.Migrations.update0.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
         </member>
-        <member name="M:ApiServices.Services.AuthService.LoginUser(Common.DataTransferObjects.LoginUserDto)">
-            Signs in a user using their username and password.
+        <member name="M:ApiServices.Migrations.update0.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:ApiServices.Services.ActivityLogService.GetAll(System.Int32,System.Int32,ApiServices.DataTransferObjects.Filters.ActivityLogFilter)">
+            <summary> Retrieves a paginated list of activity logs based on specified filters and ordering.</summary>
+            <param name="page">The zero-based page number of the results to retrieve.</param>
+            <param name="limit">The maximum number of items to return per page.</param>
+            <param name="filter">Optional. An ActivityLogFilter object containing criteria to filter the results.</param>
+            <returns>
+            A Task that represents the asynchronous operation. The task result contains a PaginationDto&lt;ActivityLogDto&gt;
+            representing the paginated list of activity logs matching the specified criteria.
+            </returns>
+        </member>
+        <member name="M:ApiServices.Services.ActivityLogService.Log(ApiServices.Constants.FundActivity.Type,System.Guid,System.Guid,System.Nullable{ApiServices.Constants.FundTransaction.Type},System.Nullable{System.Double},System.String,System.Nullable{System.Guid})">
+            <summary>Logs a fund activity in the database.</summary>
+            <param name="activity">The type of fund activity.</param>
+            <param name="fund">The identifier of the fund.</param>
+            <param name="user">The identifier of the user.</param>
+            <param name="transactionType">The type of fund transaction (optional).</param>
+            <param name="amount">The amount involved in the activity (optional).</param>
+            <param name="details">Additional details about the activity (optional).</param>
+            <param name="currency">The identifier of the currency (optional).</param>
+        </member>
+        <member name="M:ApiServices.Services.AuthService.CreateValidationParams(System.String,System.Boolean)">
+            <summary>Creates and configures TokenValidationParameters for JWT validation.</summary>
+            <param name="key">The secret key used for validating the token signature.</param>
+            <param name="checkTime">A boolean flag indicating whether to validate the token's lifetime. 
+            Default is true.</param>
+            <returns> A TokenValidationParameters object configured with the specified settings.
+            If checkTime is true, it includes lifetime validation with zero clock skew.</returns>
+        </member>
+        <member name="M:ApiServices.Services.AuthService.GenerateToken(System.String,System.String)">
+            <summary>Generates a JSON Web Token (JWT) based on the provided user information.</summary>
+            <param name="username">Username value</param>
+            <param name="roleName">User Role</param>
+            <returns>A LoginResponseDto containing the generated tokens and user information.</returns>
+        </member>
+        <member name="M:ApiServices.Services.AuthService.Authorize(Microsoft.AspNetCore.Http.HttpContext,System.Collections.Generic.IEnumerable{ApiServices.Constants.UserRole.Type})">
+            <summary>Authorizes a request based on the provided JWT token in the HTTP context.</summary>
+            <param name="http">The HttpContext containing the authorization header.</param>
+            <param name="rolesRequired">Optional. The roles required for authorization.</param>
+            <returns>A ServiceFlag containing the authorization result and user information if successful.</returns>
+        </member>
+        <member name="M:ApiServices.Services.AuthService.RefreshTokens(ApiServices.Services.AuthService.Tokens)">
+            <summary>Refreshes the authentication tokens for a user.</summary>
+            <param name="request">The Tokens object containing the current signin and refresh tokens.</param>
+            <returns> A ServiceFlag containing an AuthResponseDto with new tokens if successful, or an error status if unsuccessful.
+            The AuthResponseDto includes the user ID, role, and new signin and refresh tokens.</returns>
+            <remarks>This method validates both the refresh token and the signin token, extracts user information,
+            and generates new tokens if the validation is successful.</remarks>
+        </member>
+        <member name="M:ApiServices.Services.AuthService.RegisterUser(ApiServices.DataTransferObjects.RegisterUserDto)">
+            <summary> Registers a new user in the database.</summary>
+            <param name="userDtoDetails">The details of the user to be registered.</param>
+            <returns>A ServiceFlag containing the registered user if successful.</returns>
+        </member>
+        <member name="M:ApiServices.Services.AuthService.LoginUser(ApiServices.DataTransferObjects.LoginUserDto)">
+            <summary>Authenticates a user using their username and password.</summary>
+            <param name="userDtoDetails">The login details of the user.</param>
+            <returns>A ServiceFlag containing the login response with tokens if successful.</returns>
         </member>
         <member name="M:ApiServices.Services.CurrencyService.InformalForeignExchange">
             <summary>Retrieves informal foreign exchange rates from a public website (eltoque.com).</summary>
@@ -195,12 +265,12 @@
             <param name="funds">Indicates whether to include fund-related data in the response.</param>  
             <returns>An asynchronous task returning an enumerable collection of CurrencyDto objects.</returns>  
         </member>
-        <member name="M:ApiServices.Services.CurrencyService.Add(Common.DataTransferObjects.AddCurrencyDto)">
+        <member name="M:ApiServices.Services.CurrencyService.Add(ApiServices.DataTransferObjects.AddCurrencyDto)">
             <summary>Adds a new currency to the database or reactivates an existing inactive currency.</summary>  
             <param name="info">The information for the currency to be added.</param>  
             <returns>An asynchronous task returning a ServiceFlag containing the result of the operation.</returns>  
         </member>
-        <member name="M:ApiServices.Services.CurrencyService.Update(Common.DataTransferObjects.AddCurrencyDto,System.Guid)">
+        <member name="M:ApiServices.Services.CurrencyService.Update(ApiServices.DataTransferObjects.AddCurrencyDto,System.Guid)">
             <summary>Updates an existing currency in the database.</summary>  
             <param name="info">The updated currency information.</param>  
             <param name="id">The unique identifier of the currency to be updated.</param>  
@@ -241,30 +311,30 @@
             <returns>An array of FundDto objects representing all funds owned by the user, 
             or an empty array if the user has no funds.</returns>
         </member>
-        <member name="M:ApiServices.Services.FundService.Add(Common.DataTransferObjects.AddFundDto)">
+        <member name="M:ApiServices.Services.FundService.Add(ApiServices.DataTransferObjects.AddFundDto)">
             <summary> Creates a new fund based on the provided information. </summary>
             <param name="info">An AddFundDto object containing details about the new fund.</param>
             <returns>A FundDto object representing the newly created fund.</returns>
         </member>
-        <member name="M:ApiServices.Services.FundService.Update(Common.DataTransferObjects.AddFundDto,System.Guid)">
+        <member name="M:ApiServices.Services.FundService.Update(ApiServices.DataTransferObjects.AddFundDto,System.Guid)">
             <summary> Updates an existing fund with the provided information. </summary>
             <param name="info">An AddFundDto object containing updated details for the fund.</param>
             <param name="id">The unique identifier of the fund to be updated.</param>
             <returns>A ServiceFlag object containing either a FundDto representing the updated fund on success (with OK), 
             or null with NotFound if the fund is not found.</returns>
         </member>
-        <member name="M:ApiServices.Services.FundService.Transfer(Common.DataTransferObjects.TransferDto)">
+        <member name="M:ApiServices.Services.FundService.Transfer(ApiServices.DataTransferObjects.TransferDto)">
             <summary> Transfers a specified amount of currency from one fund to another. </summary>  
             <param name="info">Information about the transfer, including from/to fund IDs and amount to transfer.</param>  
             <returns>A ServiceFlag containing the result of the transfer operation, including success or error information.</returns>  
         </member>
-        <member name="M:ApiServices.Services.FundService.Withdraw(Common.DataTransferObjects.TransactionDto)">
+        <member name="M:ApiServices.Services.FundService.Withdraw(ApiServices.DataTransferObjects.TransactionDto)">
             <summary>Withdraws a specified amount of currency from a fund.</summary>  
             <param name="info">Transaction details containing currency type and amount to withdraw.</param>  
             <returns>A ServiceFlag containing the result of the withdrawal operation,   
             including the FundDto if successful or an error message if unsuccessful.</returns>  
         </member>
-        <member name="M:ApiServices.Services.FundService.Deposit(Common.DataTransferObjects.TransactionDto)">
+        <member name="M:ApiServices.Services.FundService.Deposit(ApiServices.DataTransferObjects.TransactionDto)">
             <summary>  
             Deposits a specified amount of currency into a fund.  
             </summary>  
@@ -297,10 +367,10 @@
         <member name="M:ApiServices.Services.UserService.FindBy(System.Nullable{System.Guid},System.String,System.String)">
             Finds a user based on the provided ID, name, or email.
         </member>
-        <member name="M:ApiServices.Services.UserService.UpdateUser(Common.DataTransferObjects.RegisterUserDto)">
+        <member name="M:ApiServices.Services.UserService.UpdateUser(ApiServices.DataTransferObjects.RegisterUserDto)">
             Updates the information of a user.
         </member>
-        <member name="M:ApiServices.Services.UserService.ResetPassword(Common.DataTransferObjects.ResetPasswordDto)">
+        <member name="M:ApiServices.Services.UserService.ResetPassword(ApiServices.DataTransferObjects.ResetPasswordDto)">
             Resets the password for a specified user.
         </member>
         <member name="M:ApiServices.Services.UserService.Delete(System.Guid)">
