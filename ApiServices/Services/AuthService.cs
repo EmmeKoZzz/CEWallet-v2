@@ -128,11 +128,7 @@ public class AuthService(IConfiguration configuration, AppDbContext dbContext, R
 		if (!TokenRegistry.TryGetValue(request.RefreshToken, out var storeToken))
 			return new(HttpStatusCode.Unauthorized, Message: "Invalid token.");
 		
-		if (request.SigninToken != storeToken) {
-			TokenRegistry.Remove(request.RefreshToken);
-			
-			return new(HttpStatusCode.Unauthorized, Message: "Invalid token.");
-		}
+		if (request.SigninToken != storeToken) return new(HttpStatusCode.Unauthorized, Message: "Invalid token.");
 		
 		var refreshTokenValidation = await TokenHandler.ValidateTokenAsync(
 			request.RefreshToken,
@@ -155,7 +151,9 @@ public class AuthService(IConfiguration configuration, AppDbContext dbContext, R
 		if (user == null) return new(HttpStatusCode.Unauthorized, Message: "Invalid user.");
 		var tokens = await GenerateToken(username!, role!);
 		
-		return new(HttpStatusCode.OK, new AuthResponseDto(user, role!, tokens.SigninToken, tokens.RefreshToken));
+		TokenRegistry.Remove(request.RefreshToken);
+		
+		return new(HttpStatusCode.OK, new(user, role!, tokens.SigninToken, tokens.RefreshToken));
 	}
 	
 	/// <summary> Registers a new user in the database.</summary>
