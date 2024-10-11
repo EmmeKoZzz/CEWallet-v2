@@ -263,7 +263,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 	/// <response code="401">The user is not authorized to perform this action.</response>
 	/// <response code="404">No fund is found with the specified identifier.</response>  
 	[HttpDelete("{id:guid}")]
-	public async Task<ActionResult<BaseDto<object>>> Delete([FromRoute] Guid id) {
+	public async Task<ActionResult<BaseDto<FundDto>>> Delete([FromRoute] Guid id) {
 		var (validation, userSession, _) = await auth.Authorize(HttpContext, [UserRole.Type.Administrator]);
 		
 		if (validation is not HttpStatusCode.OK)
