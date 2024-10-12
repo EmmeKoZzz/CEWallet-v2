@@ -135,11 +135,11 @@
             <response code="401">The user is not authorized to perform this action.</response>
             <response code="404">No fund is found with the specified identifier.</response>  
         </member>
-        <member name="M:ApiServices.Controllers.LogsController.List(ApiServices.DataTransferObjects.Filters.ActivityLogFilter,System.Nullable{System.Int32},System.Nullable{System.Int32})">
+        <member name="M:ApiServices.Controllers.LogsController.List(ApiServices.DataTransferObjects.Filters.ActivityLogFilter,System.Int32,System.Int32)">
             <summary> Lists activity logs based on optional filters, page number, and limit. </summary>
             <param name="filter">Optional filter criteria for activity logs (can be null).</param>
             <param name="page">The page number (optional).</param>
-            <param name="limit">The number of logs per page (optional).</param>
+            <param name="size">The number of logs per page (optional).</param>
         </member>
         <member name="M:ApiServices.Controllers.RoleController.GetAll">
             <summary> Retrieves a list of all available user roles. </summary>
@@ -201,7 +201,7 @@
         <member name="M:ApiServices.Services.ActivityLogService.GetAll(System.Int32,System.Int32,ApiServices.DataTransferObjects.Filters.ActivityLogFilter)">
             <summary> Retrieves a paginated list of activity logs based on specified filters and ordering.</summary>
             <param name="page">The zero-based page number of the results to retrieve.</param>
-            <param name="limit">The maximum number of items to return per page.</param>
+            <param name="size">The maximum number of items to return per page.</param>
             <param name="filter">Optional. An ActivityLogFilter object containing criteria to filter the results.</param>
             <returns>
             A Task that represents the asynchronous operation. The task result contains a PaginationDto&lt;ActivityLogDto&gt;
