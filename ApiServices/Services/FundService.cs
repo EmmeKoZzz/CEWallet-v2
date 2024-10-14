@@ -16,7 +16,7 @@ public class FundService(AppDbContext dbContext) {
 
 	public async Task<PaginationDto<FundDto>> GetAllDev(int page, int size, FundFilter? filter) {
 		var query = Repo.Where(entity => entity.Active).Include(entity => entity.FundCurrencies)
-			.ThenInclude(entity => entity.Currency).AsQueryable();
+			.ThenInclude(entity => entity.Currency).Include(entity => entity.User).ThenInclude(u => u!.Role).AsQueryable();
 
 		ApplyFilters();
 		ApplyOrdering();
@@ -56,9 +56,9 @@ public class FundService(AppDbContext dbContext) {
 		void ApplyOrdering() {
 			query = filter?.OrderBy switch {
 				FundFilter.OrderByOptions.Usernames when filter.Descending =>
-					query.OrderByDescending(entity => (entity.User ?? new User()).Username),
-				FundFilter.OrderByOptions.Usernames when !filter.Descending => query.OrderBy(entity =>
-					(entity.User ?? new User()).Username),
+					query.OrderByDescending(entity => entity.User!.Username),
+				FundFilter.OrderByOptions.Usernames when !filter.Descending => query.OrderBy(
+					entity => entity.User!.Username),
 				FundFilter.OrderByOptions.CreateAt when filter.Descending => query.OrderByDescending(entity =>
 					entity.CreatedAt),
 				FundFilter.OrderByOptions.CreateAt when !filter.Descending => query.OrderBy(entity => entity.CreatedAt),
