@@ -62,8 +62,10 @@ public class FundService(AppDbContext dbContext) {
 				FundFilter.OrderByOptions.CreateAt when filter.Descending => query.OrderByDescending(entity =>
 					entity.CreatedAt),
 				FundFilter.OrderByOptions.CreateAt when !filter.Descending => query.OrderBy(entity => entity.CreatedAt),
-				FundFilter.OrderByOptions.Funds when filter.Descending => query.OrderByDescending(entity => entity.Name),
-				_ => query.OrderBy(entity => entity.Name)
+				_ => filter?.Descending switch {
+					false => query.OrderByDescending(entity => entity.Name),
+					_ => query.OrderBy(entity => entity.Name)
+				}
 			};
 		}
 	}
