@@ -253,14 +253,8 @@ public class FundService(AppDbContext dbContext) {
 	/// including the FundDto if successful or an error message if unsuccessful.</returns>  
 	public async Task<ServiceFlag<FundDto>> AttachUser(Guid userId, Guid fundId) {
 		// Start asynchronous tasks to retrieve both the fund and the user concurrently.  
-		var fundTask = Repo.SingleOrDefaultAsync(entity => entity.Active && entity.Id == fundId);
-		var userTask = dbContext.Users.Include(entity => entity.Role).SingleOrDefaultAsync(entity => entity.Id == userId);
-
-		// Wait for both tasks to complete.  
-		await Task.WhenAll(fundTask, userTask);
-
-		// Retrieve the results from the tasks.  
-		var (fund, user) = (await fundTask, await userTask);
+		var fund = await Repo.SingleOrDefaultAsync(entity => entity.Active && entity.Id == fundId);
+		var user = await dbContext.Users.Include(entity => entity.Role).SingleOrDefaultAsync(entity => entity.Id == userId);
 
 		// Check if either the fund or the user was not found.  
 		if (fund == null || user == null) return new(NotFound, Message: $"{(fund == null ? "Fund" : "User")} not found.");
