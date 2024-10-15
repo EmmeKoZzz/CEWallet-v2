@@ -7,7 +7,7 @@ namespace ApiServices.Helpers;
 
 public static class ControllerBaseExtensions {
 	public static ObjectResult InternalError(this ControllerBase _, object? value = default, string? detail = default) =>
-		new(new BaseDto<string>(HttpStatusCode.InternalServerError, Detail: detail)) { StatusCode = 500 };
+		new(new BaseDto<object>(HttpStatusCode.InternalServerError, value, Detail: detail)) { StatusCode = 500 };
 
 	public static OkObjectResult CustomOk(this ControllerBase controller, object? value) =>
 		controller.Ok(new BaseDto<object?>(HttpStatusCode.OK, value));
