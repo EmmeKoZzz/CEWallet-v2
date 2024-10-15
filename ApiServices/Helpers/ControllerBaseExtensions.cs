@@ -6,7 +6,7 @@ using MySqlConnector;
 namespace ApiServices.Helpers;
 
 public static class ControllerBaseExtensions {
-	public static ObjectResult InternalError(this ControllerBase _, string? detail = default) =>
+	public static ObjectResult InternalError(this ControllerBase _, object? value = default, string? detail = default) =>
 		new(new BaseDto<string>(HttpStatusCode.InternalServerError, Detail: detail)) { StatusCode = 500 };
 
 	public static OkObjectResult CustomOk(this ControllerBase controller, object? value) =>
@@ -28,7 +28,7 @@ public static class ControllerBaseExtensions {
 
 	public static ObjectResult HandleErrors(this ControllerBase controller, Exception e) {
 		return e.InnerException is MySqlException error
-			? controller.CustomBadRequest(new { error.ErrorCode, error.SqlState, error.Message })
-			: controller.InternalError(e.InnerException?.Message);
+			? controller.InternalError(new { error.ErrorCode, error.SqlState, error.Message }, error.Message)
+			: controller.InternalError(detail: e.Message);
 	}
 }
