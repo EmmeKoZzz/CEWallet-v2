@@ -23,7 +23,7 @@ public class LogsController(ActivityLogService logs) : ControllerBase {
 			return this.CustomOk(await logs.GetAll(page, size, filter));
 		}
 		catch (Exception e) {
-			return this.InternalError(e.Message);
+			return this.HandleErrors(e);
 		}
 	}
 }

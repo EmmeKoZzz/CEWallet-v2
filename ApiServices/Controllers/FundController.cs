@@ -8,6 +8,7 @@ using ApiServices.Decorators;
 using ApiServices.Helpers;
 using ApiServices.Services;
 using Microsoft.AspNetCore.Mvc;
+using MySqlConnector;
 
 namespace ApiServices.Controllers;
 
@@ -27,7 +28,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 			return this.CustomOk(await funds.GetAllDev(page, size, filter));
 		}
 		catch (Exception e) {
-			return this.InternalError(e.Message);
+			return this.HandleErrors(e);
 		}
 	}
 
@@ -47,7 +48,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 			};
 		}
 		catch (Exception e) {
-			return this.InternalError(e.Message);
+			return this.HandleErrors(e);
 		}
 	}
 
@@ -61,7 +62,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 			return this.CustomOk(await funds.GetByUser(id));
 		}
 		catch (Exception e) {
-			return this.InternalError(e.Message);
+			return this.HandleErrors(e);
 		}
 	}
 
@@ -88,8 +89,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 		}
 		catch (Exception e) {
 			await trx.RollbackAsync();
-
-			return this.InternalError(e.Message);
+			return this.HandleErrors(e);
 		}
 	}
 
@@ -112,7 +112,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 			};
 		}
 		catch (Exception e) {
-			return this.InternalError(e.Message);
+			return this.HandleErrors(e);
 		}
 	}
 
@@ -168,7 +168,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 		catch (Exception e) {
 			await trx.RollbackAsync();
 
-			return this.InternalError(e.Message);
+			return this.HandleErrors(e);
 		}
 	}
 
@@ -213,7 +213,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 		catch (Exception e) {
 			await trx.RollbackAsync();
 
-			return this.InternalError(e.Message);
+			return this.HandleErrors(e);
 		}
 	}
 
@@ -258,7 +258,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 		catch (Exception e) {
 			await trx.RollbackAsync();
 
-			return this.InternalError(e.Message);
+			return this.HandleErrors(e);
 		}
 	}
 
@@ -280,7 +280,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 			};
 		}
 		catch (Exception e) {
-			return this.InternalError(e.Message);
+			return this.HandleErrors(e);
 		}
 	}
 
@@ -311,7 +311,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 		catch (Exception e) {
 			await trx.RollbackAsync();
 
-			return this.InternalError(e.Message);
+			return this.HandleErrors(e);
 		}
 	}
 }

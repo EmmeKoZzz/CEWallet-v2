@@ -26,7 +26,7 @@ public class AuthController(AuthService authService) : ControllerBase {
 			};
 		}
 		catch (Exception e) {
-			return this.InternalError(e.Message);
+			return this.HandleErrors(e);
 		}
 	}
 
@@ -45,7 +45,7 @@ public class AuthController(AuthService authService) : ControllerBase {
 			};
 		}
 		catch (Exception e) {
-			return this.InternalError(e.Message);
+			return this.HandleErrors(e);
 		}
 	}
 
@@ -66,7 +66,7 @@ public class AuthController(AuthService authService) : ControllerBase {
 			};
 		}
 		catch (Exception e) {
-			return this.InternalError(e.Message);
+			return this.HandleErrors(e);
 		}
 	}
 
@@ -87,7 +87,7 @@ public class AuthController(AuthService authService) : ControllerBase {
 			};
 		}
 		catch (Exception e) {
-			return this.InternalError(e.Message);
+			return this.HandleErrors(e);
 		}
 	}
 }

@@ -28,7 +28,7 @@ public class CurrencyController(
 			return this.CustomOk(await currency.GetAll(funds));
 		}
 		catch (Exception e) {
-			return this.InternalError(e.Message);
+			return this.HandleErrors(e);
 		}
 	}
 
@@ -48,7 +48,7 @@ public class CurrencyController(
 			};
 		}
 		catch (Exception e) {
-			return this.InternalError(e.Message);
+			return this.HandleErrors(e);
 		}
 	}
 
@@ -70,7 +70,7 @@ public class CurrencyController(
 			};
 		}
 		catch (Exception e) {
-			return this.InternalError(e.Message);
+			return this.HandleErrors(e);
 		}
 	}
 
@@ -116,7 +116,7 @@ public class CurrencyController(
 		catch (Exception e) {
 			await trx.RollbackAsync();
 
-			return this.InternalError(e.Message);
+			return this.HandleErrors(e);
 		}
 	}
 
@@ -128,7 +128,7 @@ public class CurrencyController(
 			return this.CustomOk(await CurrencyService.InformalForeignExchange());
 		}
 		catch (Exception e) {
-			return this.InternalError(e.Message);
+			return this.HandleErrors(e);
 		}
 	}
 }

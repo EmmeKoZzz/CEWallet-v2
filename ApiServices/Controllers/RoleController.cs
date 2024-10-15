@@ -16,7 +16,7 @@ public class RoleController(RoleService roleService) : ControllerBase {
 	[HttpGet, AuthorizeRole(UserRole.Type.Administrator)]
 	public async Task<ActionResult<BaseDto<IEnumerable<RoleDto>>>> GetAll() {
 		try { return this.CustomOk((await roleService.GetAll()).Select(role => new RoleDto(role.Id, role.Name))); } catch (Exception e) {
-			return this.InternalError(e.Message);
+			return this.HandleErrors(e);
 		}
 	}
 	
@@ -32,7 +32,7 @@ public class RoleController(RoleService roleService) : ControllerBase {
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: $"Role {id} Not Found"),
 				HttpStatusCode.OK => this.CustomOk(new RoleDto(role!.Id, role.Name))
 			};
-		} catch (Exception e) { return this.InternalError(e.Message); }
+		} catch (Exception e) { return this.HandleErrors(e); }
 	}
 	
 }
