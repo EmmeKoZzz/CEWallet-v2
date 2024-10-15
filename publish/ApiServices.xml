@@ -210,6 +210,18 @@
         <member name="M:ApiServices.Migrations.update.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
             <inheritdoc />
         </member>
+        <member name="T:ApiServices.Migrations.uniqueFundNames">
+            <inheritdoc />
+        </member>
+        <member name="M:ApiServices.Migrations.uniqueFundNames.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:ApiServices.Migrations.uniqueFundNames.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:ApiServices.Migrations.uniqueFundNames.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
         <member name="M:ApiServices.Services.ActivityLogService.GetAll(System.Int32,System.Int32,ApiServices.DataTransferObjects.Filters.ActivityLogFilter)">
             <summary> Retrieves a paginated list of activity logs based on specified filters and ordering.</summary>
             <param name="page">The zero-based page number of the results to retrieve.</param>
