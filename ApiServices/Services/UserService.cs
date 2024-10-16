@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using ApiServices.Configuration;
 using ApiServices.DataTransferObjects;
-using ApiServices.Helpers;
+using ApiServices.DataTransferObjects.ApiResponses;
 using ApiServices.Helpers.Structs;
 using ApiServices.Models;
 using Microsoft.EntityFrameworkCore;
@@ -9,14 +9,20 @@ using Microsoft.EntityFrameworkCore;
 namespace ApiServices.Services;
 
 public class UserService(AppDbContext dbContext, RoleService roleService) {
-	public Task<User[]> GetAll(bool role = false) {
+	public async Task<PaginationDto<UserDto>> GetAll(int page, int size, bool role = false) {
 		var query = dbContext.Users.Where(entity => entity.Active);
 		if (role) query = query.Include(entity => entity.Role);
 
-		return query.ToArrayAsync();
+		// aqui el cache del server guarda la union de la tabla de roles en los usuarios que ya se les haya hecho esa union
+		var data = await query.Skip(page * size).Take(size).ToListAsync();
+		return new PaginationDto<UserDto>(
+			data.Select(user => new UserDto(user.Id, user.Username, role ? user.Role.Name : null, user.CreatedAt)),
+			page,
+			size,
+			await query.CountAsync());
 	}
 
-	public async Task<ServiceFlag<User?>> FindBy(Guid? id = default, string? name = default, string? email = default) {
+	public async Task<ServiceFlag<User>> FindBy(Guid? id = default, string? name = default, string? email = default) {
 		var query = dbContext.Users.Where(entity => entity.Active).Include(entity => entity.Role);
 
 		User? user = default;
@@ -25,23 +31,21 @@ public class UserService(AppDbContext dbContext, RoleService roleService) {
 		else if (email != null) user = await query.SingleOrDefaultAsync(entity => entity.Email == email);
 
 		return user == null
-			? new(HttpStatusCode.NotFound)
-			: new ServiceFlag<User?>(HttpStatusCode.OK, user);
+			? new ServiceFlag<User>(HttpStatusCode.NotFound)
+			: new ServiceFlag<User>(HttpStatusCode.OK, user);
 	}
 
 	public async Task<ServiceFlag<User?>> UpdateUser(RegisterUserDto details) {
 		var (role, _, _) = await roleService.FindById(details.RoleId);
-
-		if (role != HttpStatusCode.OK) return new(HttpStatusCode.BadRequest, null);
+		if (role != HttpStatusCode.OK) return new ServiceFlag<User?>(HttpStatusCode.BadRequest, null);
 
 		var (status, user, _) = await FindBy(name: details.UserName);
-
-		if (status != HttpStatusCode.OK) return new(HttpStatusCode.NotFound);
+		if (status != HttpStatusCode.OK) return new ServiceFlag<User?>(HttpStatusCode.NotFound);
 
 		(user!.Email, user.RoleId, user.Username) = (details.Email, details.RoleId, details.Password);
 		await dbContext.SaveChangesAsync();
 
-		return new(HttpStatusCode.OK, user);
+		return new ServiceFlag<User?>(HttpStatusCode.OK, user);
 	}
 
 	public async Task<HttpStatusCode> ResetPassword(ResetPasswordDto details) {
@@ -62,7 +66,9 @@ public class UserService(AppDbContext dbContext, RoleService roleService) {
 	public async Task<ServiceFlag<User?>> Delete(Guid id) {
 		var user = await dbContext.Users.FindAsync(id);
 
-		if (user is not { Active: true }) return new(HttpStatusCode.NotFound);
+		if (user is not {
+			Active: true
+		}) return new ServiceFlag<User?>(HttpStatusCode.NotFound);
 
 		user.Active = false;
 
@@ -72,6 +78,6 @@ public class UserService(AppDbContext dbContext, RoleService roleService) {
 		await dbContext.SaveChangesAsync();
 		await dbContext.Entry(user).Reference(entity => entity.Role).LoadAsync();
 
-		return new(HttpStatusCode.OK, user);
+		return new ServiceFlag<User?>(HttpStatusCode.OK, user);
 	}
 }

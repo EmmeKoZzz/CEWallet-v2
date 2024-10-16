@@ -10,11 +10,13 @@ using Microsoft.EntityFrameworkCore;
 namespace ApiServices.Services;
 
 public class ActivityLogService(AppDbContext dbContext) {
-	DbSet<ActivityLog> Repo { get; } = dbContext.ActivityLogs;
+	private DbSet<ActivityLog> Repo { get; } = dbContext.ActivityLogs;
 
 	public async Task<PaginationDto<ActivityLogDto>> GetAll(int page, int size, ActivityLogFilter? filter = null) {
-		var query = Repo.Include(entity => entity.User).Include(entity => entity.Fund).Include(entity => entity.Currency)
-			.AsQueryable();
+		var query = Repo.Include(entity => entity.User).
+			Include(entity => entity.Fund).
+			Include(entity => entity.Currency).
+			AsQueryable();
 
 		ApplyFilters();
 		ApplyOrdering();
@@ -22,7 +24,7 @@ public class ActivityLogService(AppDbContext dbContext) {
 		var totalCount = await query.CountAsync();
 		var paginatedResults = await query.Skip(page * size).Take(size).ToArrayAsync();
 
-		return new(paginatedResults.Select(MapToActivityLogDto), page, size, totalCount);
+		return new PaginationDto<ActivityLogDto>(paginatedResults.Select(MapToActivityLogDto), page, size, totalCount);
 
 		void ApplyFilters() {
 			if (filter == null) return;
@@ -38,14 +40,16 @@ public class ActivityLogService(AppDbContext dbContext) {
 
 			if (filter.Funds?.Length > 0) {
 				Expression<Func<ActivityLog, bool>> condition = log => log.Fund.Name.Contains(filter.Funds[0]);
-				condition = filter.Funds.Aggregate(condition,
+				condition = filter.Funds.Aggregate(
+					condition,
 					(c, fundName) => c.Or(log => log.Fund.Name.Contains(fundName)));
 				query = query.Where(condition);
 			}
 
 			if (filter.Users?.Length > 0) {
 				Expression<Func<ActivityLog, bool>> condition = log => log.User.Username.Contains(filter.Users[0]);
-				condition = filter.Users.Aggregate(condition,
+				condition = filter.Users.Aggregate(
+					condition,
 					(c, username) => c.Or(log => log.User.Username.Contains(username)));
 				query = query.Where(condition);
 			}
@@ -61,15 +65,13 @@ public class ActivityLogService(AppDbContext dbContext) {
 		}
 	}
 
-	public async Task Log(
-	FundActivity.Type activity,
-	Guid fund,
-	Guid user,
-	FundTransaction.Type? transactionType = default,
-	double? amount = default,
-	string? details = default,
-	Guid? currency = default
-	) {
+	public async Task Log(FundActivity.Type activity,
+		Guid fund,
+		Guid user,
+		FundTransaction.Type? transactionType = default,
+		double? amount = default,
+		string? details = default,
+		Guid? currency = default) {
 		if (activity is not (FundActivity.Type.CreateFund or FundActivity.Type.DeleteFund) && amount == null) {
 			amount = 0;
 			FileLogger.Log($"WARNING!!: In {FundActivity.Value(activity)}, amount is null");
@@ -90,8 +92,8 @@ public class ActivityLogService(AppDbContext dbContext) {
 
 	#region Helpers
 
-	static ActivityLogDto MapToActivityLogDto(ActivityLog entity) {
-		return new(
+	private static ActivityLogDto MapToActivityLogDto(ActivityLog entity) {
+		return new ActivityLogDto(
 			entity.Id,
 			entity.User.Username,
 			entity.Fund.Name,
@@ -100,8 +102,7 @@ public class ActivityLogService(AppDbContext dbContext) {
 			entity.TransactionType,
 			entity.Amount,
 			entity.Details,
-			entity.CreatedAt
-		);
+			entity.CreatedAt);
 	}
 
 	#endregion

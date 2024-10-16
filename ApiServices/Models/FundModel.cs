@@ -4,7 +4,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ApiServices.Models;
 
-[Table("Fund"), Index("UserId", Name = "UserId"), Index("Name", IsUnique = true)]
+[Table("Fund")]
+[Index("UserId", Name = "UserId")]
+[Index("Name", IsUnique = true)]
 public class Fund {
 	[Key] public Guid Id { get; set; } = Guid.NewGuid();
 	public Guid? UserId { get; set; }
@@ -16,6 +18,7 @@ public class Fund {
 	[Column(TypeName = "timestamp")] public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 	[InverseProperty("Fund")] public virtual ICollection<FundCurrency> FundCurrencies { get; set; } = [];
 
-	[ForeignKey("UserId"), InverseProperty("Funds")]
+	[ForeignKey("UserId")]
+	[InverseProperty("Funds")]
 	public User? User { get; set; }
 }

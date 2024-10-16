@@ -18,9 +18,10 @@ public class AuthService(
 	IConfiguration configuration,
 	AppDbContext dbContext,
 	RoleService roleService,
-	UserService userService) {
-	static readonly Dictionary<string, string> TokenRegistry = [];
-	static readonly JwtSecurityTokenHandler TokenHandler = new();
+	UserService userService
+) {
+	private static readonly Dictionary<string, string> TokenRegistry = [];
+	private static readonly JwtSecurityTokenHandler TokenHandler = new();
 
 	public record Tokens(string SigninToken, string RefreshToken);
 
@@ -28,16 +29,17 @@ public class AuthService(
 		var authorizationHeader = http.Request.Headers.Authorization;
 		const string message = "Unauthorized (user attempting to register without administrator privileges).";
 
-		if (authorizationHeader.Count == 0) return new(HttpStatusCode.Unauthorized, Message: message);
+		if (authorizationHeader.Count == 0) return new ServiceFlag<User>(HttpStatusCode.Unauthorized, Message: message);
 		var tokenParts = authorizationHeader[0]!.Split("Bearer ");
 
-		if (tokenParts.Length != 2) return new(HttpStatusCode.Unauthorized, Message: message);
+		if (tokenParts.Length != 2) return new ServiceFlag<User>(HttpStatusCode.Unauthorized, Message: message);
 		var token = tokenParts[1];
 
-		var validationResult =
-			await TokenHandler.ValidateTokenAsync(token, CreateValidationParams(configuration["JWT:SigningKey"] ?? ""));
+		var validationResult = await TokenHandler.ValidateTokenAsync(
+			token,
+			CreateValidationParams(configuration["JWT:SigningKey"] ?? ""));
 
-		if (!validationResult.IsValid) return new(HttpStatusCode.Unauthorized, Message: message);
+		if (!validationResult.IsValid) return new ServiceFlag<User>(HttpStatusCode.Unauthorized, Message: message);
 
 		var claims = validationResult.ClaimsIdentity;
 		var role = claims.FindFirst(ClaimsIdentity.DefaultRoleClaimType)!.Value;
@@ -45,53 +47,59 @@ public class AuthService(
 
 		var user = await userService.FindBy(name: name);
 
-		if (user.Value is not { }) return new(HttpStatusCode.Unauthorized, Message: message);
+		if (user.Value is null) return new ServiceFlag<User>(HttpStatusCode.Unauthorized, Message: message);
 
 		if (rolesRequired == null || !rolesRequired.Any() || rolesRequired.Contains(UserRole.Value(role)))
-			return new(HttpStatusCode.OK, user.Value);
+			return new ServiceFlag<User>(HttpStatusCode.OK, user.Value);
 
-		return new(HttpStatusCode.Unauthorized, Message: message);
+		return new ServiceFlag<User>(HttpStatusCode.Unauthorized, Message: message);
 	}
 
 	public async Task<ServiceFlag<AuthResponseDto>> RefreshTokens(Tokens request) {
 		if (!TokenRegistry.TryGetValue(request.RefreshToken, out var storeToken))
-			return new(HttpStatusCode.Unauthorized, Message: "Invalid token.");
+			return new ServiceFlag<AuthResponseDto>(HttpStatusCode.Unauthorized, Message: "Invalid token.");
 
-		if (request.SigninToken != storeToken) return new(HttpStatusCode.Unauthorized, Message: "Invalid token.");
+		if (request.SigninToken != storeToken)
+			return new ServiceFlag<AuthResponseDto>(HttpStatusCode.Unauthorized, Message: "Invalid token.");
 
 		var refreshTokenValidation = await TokenHandler.ValidateTokenAsync(
 			request.RefreshToken,
-			CreateValidationParams(configuration["JWT:RefreshKey"] ?? "")
-		);
+			CreateValidationParams(configuration["JWT:RefreshKey"] ?? ""));
 
-		if (!refreshTokenValidation.IsValid) return new(HttpStatusCode.Unauthorized, Message: "Invalid token.");
+		if (!refreshTokenValidation.IsValid)
+			return new ServiceFlag<AuthResponseDto>(HttpStatusCode.Unauthorized, Message: "Invalid token.");
 
 		var signinTokenValidation = await TokenHandler.ValidateTokenAsync(
 			request.SigninToken,
-			CreateValidationParams(configuration["JWT:SigningKey"] ?? "", false)
-		);
+			CreateValidationParams(configuration["JWT:SigningKey"] ?? "", false));
 
 		var userInfo = signinTokenValidation.Claims;
 		var username = userInfo[ClaimsIdentity.DefaultNameClaimType] as string;
 		var role = userInfo[ClaimsIdentity.DefaultRoleClaimType] as string;
 
-		var user = await dbContext.Users.Where(entity => entity.Username == username).Select(entity => entity.Id)
-			.SingleOrDefaultAsync();
+		var user = await dbContext.Users.Where(entity => entity.Username == username).
+			Select(entity => entity.Id).
+			SingleOrDefaultAsync();
 
-		if (user == null) return new(HttpStatusCode.Unauthorized, Message: "Invalid user.");
+		if (user == null) return new ServiceFlag<AuthResponseDto>(HttpStatusCode.Unauthorized, Message: "Invalid user.");
 		var tokens = await GenerateToken(username!, role!);
 
 		TokenRegistry.Remove(request.RefreshToken);
 
-		return new(HttpStatusCode.OK, new(user, role!, tokens.SigninToken, tokens.RefreshToken));
+		return new ServiceFlag<AuthResponseDto>(
+			HttpStatusCode.OK,
+			new AuthResponseDto(user, role!, tokens.SigninToken, tokens.RefreshToken));
 	}
 
 	public async Task<ServiceFlag<User?>> RegisterUser(RegisterUserDto userDtoDetails) {
 		var (_, role, _) = await roleService.FindById(userDtoDetails.RoleId);
 
-		if (role == null) return new(HttpStatusCode.NotFound);
+		if (role == null) return new ServiceFlag<User?>(HttpStatusCode.NotFound);
 
-		var user = new User(userDtoDetails.UserName, userDtoDetails.Email, userDtoDetails.Password,
+		var user = new User(
+			userDtoDetails.UserName,
+			userDtoDetails.Email,
+			userDtoDetails.Password,
 			userDtoDetails.RoleId);
 
 		await dbContext.Users.AddAsync(user);
@@ -100,31 +108,35 @@ public class AuthService(
 
 		FileLogger.Log($"Register: {user.Username} as {role.Name.ToUpper()}.");
 
-		return new(HttpStatusCode.OK, user);
+		return new ServiceFlag<User?>(HttpStatusCode.OK, user);
 	}
 
 	public async Task<ServiceFlag<AuthResponseDto>> LoginUser(LoginUserDto userDtoDetails) {
-		var userDb = await dbContext.Users.Include(entity => entity.Role).Where(entity => entity.Active)
-			.SingleOrDefaultAsync(e => e.Username == userDtoDetails.UserName);
+		var userDb = await dbContext.Users.Include(entity => entity.Role).
+			Where(entity => entity.Active).
+			SingleOrDefaultAsync(e => e.Username == userDtoDetails.UserName);
 
-		if (userDb == null) return new(HttpStatusCode.NotFound);
-		if (!userDb.VerifyPassword(userDtoDetails.Password)) return new(HttpStatusCode.Unauthorized);
+		if (userDb == null) return new ServiceFlag<AuthResponseDto>(HttpStatusCode.NotFound);
+		if (!userDb.VerifyPassword(userDtoDetails.Password))
+			return new ServiceFlag<AuthResponseDto>(HttpStatusCode.Unauthorized);
 		var tokens = await GenerateToken(userDb.Username, userDb.Role.Name);
 
 		FileLogger.Log($"Login: {userDb.Username}.");
 
-		return new(HttpStatusCode.OK, new(userDb.Id, userDb.Role.Name, tokens.SigninToken, tokens.RefreshToken));
+		return new ServiceFlag<AuthResponseDto>(
+			HttpStatusCode.OK,
+			new AuthResponseDto(userDb.Id, userDb.Role.Name, tokens.SigninToken, tokens.RefreshToken));
 	}
 
 	#region Helpers
 
-	TokenValidationParameters CreateValidationParams(string key, bool checkTime = true) {
+	private TokenValidationParameters CreateValidationParams(string key, bool checkTime = true) {
 		var validationParameters = new TokenValidationParameters {
 			IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
 			ValidIssuer = configuration["JWT:Issuer"],
 			ValidateIssuerSigningKey = true,
 			ValidateIssuer = true,
-			ValidateAudience = false,
+			ValidateAudience = false
 		};
 
 		if (!checkTime) return validationParameters;
@@ -134,7 +146,7 @@ public class AuthService(
 		return validationParameters;
 	}
 
-	async Task<Tokens> GenerateToken(string username, string roleName) {
+	private async Task<Tokens> GenerateToken(string username, string roleName) {
 		string? signinKey = configuration["JWT:SigningKey"],
 			refreshKey = configuration["JWT:RefreshKey"],
 			issuer = configuration["JWT:Issuer"];
@@ -145,8 +157,10 @@ public class AuthService(
 		var now = DateTime.UtcNow;
 
 		var identity = new ClaimsIdentity(
-			[new(ClaimsIdentity.DefaultRoleClaimType, roleName), new(ClaimsIdentity.DefaultNameClaimType, username)]
-		);
+		[
+			new Claim(ClaimsIdentity.DefaultRoleClaimType, roleName),
+			new Claim(ClaimsIdentity.DefaultNameClaimType, username)
+		]);
 
 		Task<string>[] tasks = [CreateToken(signinKey, 1), CreateToken(refreshKey, 3)];
 		await Task.WhenAll(tasks);
@@ -154,21 +168,23 @@ public class AuthService(
 
 		TokenRegistry.Add(refreshToken, signinToken);
 
-		return new(signinToken, refreshToken);
+		return new Tokens(signinToken, refreshToken);
 
-		async Task<string> CreateToken(string key, int time) => await Task.Run(
-			() => {
-				SecurityTokenDescriptor tokenDescriptor = new() {
-					Subject = identity,
-					SigningCredentials = new(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
-						SecurityAlgorithms.HmacSha256Signature),
-					Issuer = issuer,
-					Expires = now.AddHours(time)
-				};
+		async Task<string> CreateToken(string key, int time) {
+			return await Task.Run(
+				() => {
+					SecurityTokenDescriptor tokenDescriptor = new() {
+						Subject = identity,
+						SigningCredentials = new SigningCredentials(
+							new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)),
+							SecurityAlgorithms.HmacSha256Signature),
+						Issuer = issuer,
+						Expires = now.AddHours(time)
+					};
 
-				return TokenHandler.WriteToken(TokenHandler.CreateToken(tokenDescriptor));
-			}
-		);
+					return TokenHandler.WriteToken(TokenHandler.CreateToken(tokenDescriptor));
+				});
+		}
 	}
 
 	#endregion

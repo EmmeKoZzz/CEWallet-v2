@@ -10,7 +10,5 @@ public record FundDto(
 	IEnumerable<FundDto.CurrencyAmount>? Currencies = default,
 	UserDto? User = default
 ) {
-	
 	public record CurrencyAmount(string Currency, double Amount);
-	
 }

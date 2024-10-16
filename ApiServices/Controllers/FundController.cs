@@ -12,22 +12,19 @@ using MySqlConnector;
 
 namespace ApiServices.Controllers;
 
-[ApiController, Route("/fund")]
+[ApiController]
+[Route("/fund")]
 public class FundController(AppDbContext dbContext, FundService funds, ActivityLogService logs, AuthService auth)
 	: ControllerBase {
 	/// <summary> Retrieves all funds. Only administrators and Supervisors are allowed to perform this action.</summary>
 	/// <response code="200">Successful retrieval of funds.</response>
 	/// <response code="401">Unauthorized access.</response>
-	[HttpPost, AuthorizeRole(UserRole.Type.Administrator, UserRole.Type.Supervisor)]
-	public async Task<ActionResult<BaseDto<PaginationDto<FundDto>>>> GetAll(
-	[FromQuery] int page = 0,
-	[FromQuery] int size = 10,
-	[FromBody] FundFilter? filter = default
-	) {
-		try {
-			return this.CustomOk(await funds.GetAllDev(page, size, filter));
-		}
-		catch (Exception e) {
+	[HttpPost]
+	[AuthorizeRole(UserRole.Type.Administrator, UserRole.Type.Supervisor)]
+	public async Task<ActionResult<BaseDto<PaginationDto<FundDto>>>> GetAll([FromQuery] int page = 0,
+		[FromQuery] int size = 10,
+		[FromBody] FundFilter? filter = default) {
+		try { return this.CustomOk(await funds.GetAllDev(page, size, filter)); } catch (Exception e) {
 			return this.HandleErrors(e);
 		}
 	}
@@ -37,7 +34,8 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 	/// <response code="200">Successful retrieval of the fund.</response>
 	/// <response code="401">Unauthorized access.</response>
 	/// <response code="404">Fund not found.</response>
-	[HttpGet("{id:guid}"), AuthorizeRole]
+	[HttpGet("{id:guid}")]
+	[AuthorizeRole]
 	public async Task<ActionResult<BaseDto<FundDto>>> Get([FromRoute] Guid id) {
 		try {
 			var res = await funds.Get(id);
@@ -46,24 +44,17 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message),
 				HttpStatusCode.OK => this.CustomOk(res.Value)
 			};
-		}
-		catch (Exception e) {
-			return this.HandleErrors(e);
-		}
+		} catch (Exception e) { return this.HandleErrors(e); }
 	}
 
 	/// <summary> Retrieves funds associated with a specific user. </summary>
 	/// <param name="id">The ID of the user whose funds to retrieve.</param>
 	/// <response code="200">Successful retrieval of the user's funds.</response>
 	/// <response code="401">Unauthorized access.</response>
-	[HttpGet("user/{id:guid}"), AuthorizeRole]
+	[HttpGet("user/{id:guid}")]
+	[AuthorizeRole]
 	public async Task<ActionResult<BaseDto<FundDto[]>>> GetUserFunds([FromRoute] Guid id) {
-		try {
-			return this.CustomOk(await funds.GetByUser(id));
-		}
-		catch (Exception e) {
-			return this.HandleErrors(e);
-		}
+		try { return this.CustomOk(await funds.GetByUser(id)); } catch (Exception e) { return this.HandleErrors(e); }
 	}
 
 	/// <summary> Adds a new fund. Only administrators are allowed to perform this action.</summary>
@@ -86,8 +77,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 			await trx.CommitAsync();
 
 			return this.CustomOk(res);
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			await trx.RollbackAsync();
 			return this.HandleErrors(e);
 		}
@@ -100,7 +90,8 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 	/// <response code="400">Invalid fund information.</response>
 	/// <response code="401">Unauthorized access.</response>
 	/// <response code="404">Fund not found.</response>
-	[HttpPatch("{id:guid}"), AuthorizeRole(UserRole.Type.Administrator)]
+	[HttpPatch("{id:guid}")]
+	[AuthorizeRole(UserRole.Type.Administrator)]
 	public async Task<ActionResult<BaseDto<FundDto>>> Update([FromBody] AddFundDto info, [FromRoute] Guid id) {
 		try {
 			var res = await funds.Update(info, id);
@@ -110,10 +101,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 				HttpStatusCode.OK => this.CustomOk(res.Value),
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message)
 			};
-		}
-		catch (Exception e) {
-			return this.HandleErrors(e);
-		}
+		} catch (Exception e) { return this.HandleErrors(e); }
 	}
 
 	/// <summary> Transfers funds between accounts. Only administrators and Supervisors are allowed to perform this action.</summary>
@@ -124,8 +112,9 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 	/// <response code="404">The source or destination account does not exist.</response>
 	[HttpPost("transfer")]
 	public async Task<ActionResult<BaseDto<TransferDto.Response>>> Transfer([FromBody] TransferDto info) {
-		var (validation, userSession, _) =
-			await auth.Authorize(HttpContext, [UserRole.Type.Administrator, UserRole.Type.Supervisor]);
+		var (validation, userSession, _) = await auth.Authorize(
+			HttpContext,
+			[UserRole.Type.Administrator, UserRole.Type.Supervisor]);
 
 		if (validation is not HttpStatusCode.OK)
 			return this.CustomUnauthorized("user attempting to register without administrator privileges).");
@@ -147,8 +136,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 				FundTransaction.Type.Withdrawal,
 				currency: info.Currency,
 				amount: info.Amount,
-				details: info.Details
-			);
+				details: info.Details);
 
 			await logs.Log(
 				FundActivity.Type.Transfer,
@@ -157,15 +145,13 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 				FundTransaction.Type.Deposit,
 				currency: info.Currency,
 				amount: info.Amount,
-				details: info.Details
-			);
+				details: info.Details);
 
 			await dbContext.SaveChangesAsync();
 			await trx.CommitAsync();
 
 			return this.CustomOk(res.Value);
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			await trx.RollbackAsync();
 
 			return this.HandleErrors(e);
@@ -202,15 +188,13 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 				currency: info.Currency,
 				transactionType: FundTransaction.Type.Withdrawal,
 				amount: info.Amount,
-				details: info.Details
-			);
+				details: info.Details);
 
 			await dbContext.SaveChangesAsync();
 			await trx.CommitAsync();
 
 			return this.CustomOk(res.Value);
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			await trx.RollbackAsync();
 
 			return this.HandleErrors(e);
@@ -247,15 +231,13 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 				currency: info.Currency,
 				transactionType: FundTransaction.Type.Deposit,
 				amount: info.Amount,
-				details: info.Details
-			);
+				details: info.Details);
 
 			await dbContext.SaveChangesAsync();
 			await trx.CommitAsync();
 
 			return this.CustomOk(res.Value);
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			await trx.RollbackAsync();
 
 			return this.HandleErrors(e);
@@ -268,7 +250,8 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 	/// <response code="200">User attached successfully.</response>
 	/// <response code="401">The user is not authorized to perform this action.</response>
 	/// <response code="404">Fund or user not found.</response>
-	[HttpPatch("attach-user/{fundId:guid}/{userId:guid}"), AuthorizeRole(UserRole.Type.Administrator)]
+	[HttpPatch("attach-user/{fundId:guid}/{userId:guid}")]
+	[AuthorizeRole(UserRole.Type.Administrator)]
 	public async Task<ActionResult<BaseDto<FundDto>>> AddUser(Guid fundId, Guid userId) {
 		try {
 			var res = await funds.AttachUser(userId, fundId);
@@ -278,10 +261,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 				HttpStatusCode.OK => this.CustomOk(res.Value),
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: res.Message)
 			};
-		}
-		catch (Exception e) {
-			return this.HandleErrors(e);
-		}
+		} catch (Exception e) { return this.HandleErrors(e); }
 	}
 
 	/// <summary>Deletes a fund by its unique identifier. Only administrators are allowed to perform this action.</summary>  
@@ -307,8 +287,7 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 			await trx.CommitAsync();
 
 			return this.CustomOk(res.Value);
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			await trx.RollbackAsync();
 
 			return this.HandleErrors(e);

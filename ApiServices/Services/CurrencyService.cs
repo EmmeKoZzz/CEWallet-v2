@@ -44,14 +44,14 @@ public class CurrencyService(AppDbContext dbContext, ActivityLogService logServi
 		var query = dbContext.Currencies.Where(entity => entity.Active).AsQueryable();
 
 		if (funds)
-			query = query.Include(e => e.FundCurrencies).ThenInclude(fc => fc.Fund).ThenInclude(f => f.FundCurrencies)
-				.ThenInclude(fc => fc.Currency);
+			query = query.Include(e => e.FundCurrencies).
+				ThenInclude(fc => fc.Fund).
+				ThenInclude(f => f.FundCurrencies).
+				ThenInclude(fc => fc.Currency);
 		var currencies = await query.ToListAsync();
 
 		var response = new List<CurrencyDto>();
-		foreach (var currency in currencies) {
-			response.Add(await MapCurrencyToDto(currency, funds, true));
-		}
+		foreach (var currency in currencies) response.Add(await MapCurrencyToDto(currency, funds, true));
 
 		return response; // Await the completion of all mapping tasks.  
 	}
@@ -60,77 +60,77 @@ public class CurrencyService(AppDbContext dbContext, ActivityLogService logServi
 		var currency = await dbContext.Currencies.SingleOrDefaultAsync(entity => entity.Name == info.Name);
 
 		switch (currency) {
-			case { Active: false }:
+			case {
+				Active: false
+			}:
 				currency.Active = true;
 
 				break;
-			case { Active: true }: return new(BadRequest, Message: "Currency already exists.");
+			case {
+				Active: true
+			}: return new ServiceFlag<CurrencyDto>(BadRequest, Message: "Currency already exists.");
 			default:
-				currency = new() { Name = info.Name };
+				currency = new Currency { Name = info.Name };
 				await dbContext.Currencies.AddAsync(currency);
 
 				break;
 		}
 
-		return new(OK, await MapCurrencyToDto(currency));
+		return new ServiceFlag<CurrencyDto>(OK, await MapCurrencyToDto(currency));
 	}
 
 	public async Task<ServiceFlag<CurrencyDto>> Update(AddCurrencyDto info, Guid id) {
 		var currency = await dbContext.Currencies.FindAsync(id);
 
-		if (currency == null) return new(NotFound);
+		if (currency == null) return new ServiceFlag<CurrencyDto>(NotFound);
 
 		currency.Name = info.Name;
 
-		return new(OK, await MapCurrencyToDto(currency));
+		return new ServiceFlag<CurrencyDto>(OK, await MapCurrencyToDto(currency));
 	}
 
 	public async Task<ServiceFlag<(CurrencyDto, Tuple<Guid, double>[])>> Delete(Guid id) {
 		var currency = await dbContext.Currencies.FindAsync(id);
 
-		if (currency == null) return new(NotFound);
+		if (currency == null) return new ServiceFlag<(CurrencyDto, Tuple<Guid, double>[])>(NotFound);
 		var fundsRelated = dbContext.FundCurrencies.Where(entity => entity.CurrencyId == id);
-		var fundIds = await fundsRelated.Select(entity => new Tuple<Guid, double>(entity.FundId, entity.Amount))
-			.ToArrayAsync();
+		var fundIds = await fundsRelated.Select(entity => new Tuple<Guid, double>(entity.FundId, entity.Amount)).
+			ToArrayAsync();
 
 		dbContext.FundCurrencies.RemoveRange(fundsRelated);
 		currency.Active = false;
 
-		return new(OK, (await MapCurrencyToDto(currency), fundIds));
+		return new ServiceFlag<(CurrencyDto, Tuple<Guid, double>[])>(OK, (await MapCurrencyToDto(currency), fundIds));
 	}
 
 
 	#region Helpers
 
-	async Task<CurrencyDto> MapCurrencyToDto(Currency entity, bool funds = false, bool balance = false) {
-		var dto = new CurrencyDto {
-			Currency = entity.Name,
-			Id = entity.Id
-		};
+	private async Task<CurrencyDto> MapCurrencyToDto(Currency entity, bool funds = false, bool balance = false) {
+		var dto = new CurrencyDto { Currency = entity.Name, Id = entity.Id };
 
-		if (balance)
-			dto.TotalBalance = await GetTotalBalance(entity);
+		if (balance) dto.TotalBalance = await GetTotalBalance(entity);
 
 		if (funds)
 			dto.Funds = entity.FundCurrencies.Select(
-				currencies => new FundDto(
-					currencies.FundId,
-					currencies.Fund.Name,
-					currencies.Fund.CreatedAt,
-					currencies.Fund.LocationUrl,
-					currencies.Fund.Address,
-					currencies.Fund.Details,
-					currencies.Fund.FundCurrencies.Select(
-						currency => new FundDto.CurrencyAmount(currency.Currency.Name, currency.Amount)
-					)
-				)
-			).ToList();
+					currencies => new FundDto(
+						currencies.FundId,
+						currencies.Fund.Name,
+						currencies.Fund.CreatedAt,
+						currencies.Fund.LocationUrl,
+						currencies.Fund.Address,
+						currencies.Fund.Details,
+						currencies.Fund.FundCurrencies.Select(
+							currency => new FundDto.CurrencyAmount(currency.Currency.Name, currency.Amount)))).
+				ToList();
 
 		return dto;
 	}
 
-	async Task<double> GetTotalBalance(Currency currency) => await dbContext.FundCurrencies
-		.Where(entity => entity.CurrencyId == currency.Id).SumAsync(entity => entity.Amount);
+	private async Task<double> GetTotalBalance(Currency currency) {
+		return await dbContext.FundCurrencies.Where(entity => entity.CurrencyId == currency.Id).
+			SumAsync(entity => entity.Amount);
+	}
 
 	#endregion
 }

@@ -10,7 +10,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ApiServices.Controllers;
 
-[ApiController, Route("/auth")]
+[ApiController]
+[Route("/auth")]
 public class AuthController(AuthService authService) : ControllerBase {
 	/// <summary> Validates a given token and returns the user and role information if successful. </summary>
 	/// <response code="401"> Invalid or expired token. </response>
@@ -24,10 +25,7 @@ public class AuthController(AuthService authService) : ControllerBase {
 				HttpStatusCode.Unauthorized => this.CustomUnauthorized(detail: "Invalid or expired token."),
 				HttpStatusCode.OK => this.CustomOk(new TokenValidationDto(response!.Username, response.Role.Name))
 			};
-		}
-		catch (Exception e) {
-			return this.HandleErrors(e);
-		}
+		} catch (Exception e) { return this.HandleErrors(e); }
 	}
 
 	/// <summary>Refreshes the access token of an authenticated user.</summary>
@@ -43,10 +41,7 @@ public class AuthController(AuthService authService) : ControllerBase {
 				HttpStatusCode.Unauthorized => this.CustomUnauthorized(detail: message),
 				HttpStatusCode.OK => this.CustomOk(authResponse)
 			};
-		}
-		catch (Exception e) {
-			return this.HandleErrors(e);
-		}
+		} catch (Exception e) { return this.HandleErrors(e); }
 	}
 
 	/// <summary> Logs in a user. </summary>
@@ -64,10 +59,7 @@ public class AuthController(AuthService authService) : ControllerBase {
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: "User not found."),
 				HttpStatusCode.OK => Ok(new BaseDto<AuthResponseDto>(status, user))
 			};
-		}
-		catch (Exception e) {
-			return this.HandleErrors(e);
-		}
+		} catch (Exception e) { return this.HandleErrors(e); }
 	}
 
 	/// <summary> Registers a new user. </summary>
@@ -76,7 +68,8 @@ public class AuthController(AuthService authService) : ControllerBase {
 	/// <response code="401"> Unauthorized (user attempting to register without administrator privileges). </response>
 	/// <response code="404"> Invalid role specified (role doesn't exist). </response>
 	/// <response code="200"> User registered successfully. </response>
-	[HttpPost("register"), AuthorizeRole(UserRole.Type.Administrator)]
+	[HttpPost("register")]
+	[AuthorizeRole(UserRole.Type.Administrator)]
 	public async Task<ActionResult<BaseDto<UserDto>>?> RegisterUser([FromBody] RegisterUserDto userDtoDetails) {
 		try {
 			var (status, user, _) = await authService.RegisterUser(userDtoDetails);
@@ -85,9 +78,6 @@ public class AuthController(AuthService authService) : ControllerBase {
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: "Invalid role specified (role doesn't exist)."),
 				HttpStatusCode.OK => this.CustomOk(new UserDto(user!.Id, user.Username, user.Role.Name, user.CreatedAt))
 			};
-		}
-		catch (Exception e) {
-			return this.HandleErrors(e);
-		}
+		} catch (Exception e) { return this.HandleErrors(e); }
 	}
 }
