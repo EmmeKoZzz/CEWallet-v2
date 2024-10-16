@@ -12,14 +12,6 @@ namespace ApiServices.Services;
 public class ActivityLogService(AppDbContext dbContext) {
 	DbSet<ActivityLog> Repo { get; } = dbContext.ActivityLogs;
 
-	/// <summary> Retrieves a paginated list of activity logs based on specified filters and ordering.</summary>
-	/// <param name="page">The zero-based page number of the results to retrieve.</param>
-	/// <param name="size">The maximum number of items to return per page.</param>
-	/// <param name="filter">Optional. An ActivityLogFilter object containing criteria to filter the results.</param>
-	/// <returns>
-	/// A Task that represents the asynchronous operation. The task result contains a PaginationDto&lt;ActivityLogDto&gt;
-	/// representing the paginated list of activity logs matching the specified criteria.
-	/// </returns>
 	public async Task<PaginationDto<ActivityLogDto>> GetAll(int page, int size, ActivityLogFilter? filter = null) {
 		var query = Repo.Include(entity => entity.User).Include(entity => entity.Fund).Include(entity => entity.Currency)
 			.AsQueryable();
@@ -69,14 +61,6 @@ public class ActivityLogService(AppDbContext dbContext) {
 		}
 	}
 
-	/// <summary>Logs a fund activity in the database.</summary>
-	/// <param name="activity">The type of fund activity.</param>
-	/// <param name="fund">The identifier of the fund.</param>
-	/// <param name="user">The identifier of the user.</param>
-	/// <param name="transactionType">The type of fund transaction (optional).</param>
-	/// <param name="amount">The amount involved in the activity (optional).</param>
-	/// <param name="details">Additional details about the activity (optional).</param>
-	/// <param name="currency">The identifier of the currency (optional).</param>
 	public async Task Log(
 	FundActivity.Type activity,
 	Guid fund,
@@ -86,13 +70,11 @@ public class ActivityLogService(AppDbContext dbContext) {
 	string? details = default,
 	Guid? currency = default
 	) {
-		// Ensure amount is set to 0 for non-create/delete activities if null
 		if (activity is not (FundActivity.Type.CreateFund or FundActivity.Type.DeleteFund) && amount == null) {
 			amount = 0;
 			FileLogger.Log($"WARNING!!: In {FundActivity.Value(activity)}, amount is null");
 		}
 
-		// Create a new activity log entity
 		var log = new ActivityLog {
 			Activity = FundActivity.Value(activity),
 			CurrencyId = currency,
@@ -103,9 +85,10 @@ public class ActivityLogService(AppDbContext dbContext) {
 			TransactionType = FundTransaction.Value(transactionType)
 		};
 
-		// Add the log to the database and save changes
 		await Repo.AddAsync(log);
 	}
+
+	#region Helpers
 
 	static ActivityLogDto MapToActivityLogDto(ActivityLog entity) {
 		return new(
@@ -120,4 +103,6 @@ public class ActivityLogService(AppDbContext dbContext) {
 			entity.CreatedAt
 		);
 	}
+
+	#endregion
 }
