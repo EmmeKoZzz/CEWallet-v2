@@ -9,9 +9,10 @@ using Microsoft.EntityFrameworkCore;
 namespace ApiServices.Services;
 
 public class UserService(AppDbContext dbContext, RoleService roleService) {
-	public async Task<PaginationDto<UserDto>> GetAll(int page, int size, bool role = false) {
+	public async Task<PaginationDto<UserDto>> GetAll(int page, int size, bool role = false, string? keyword = default) {
 		var query = dbContext.Users.Where(entity => entity.Active);
 		if (role) query = query.Include(entity => entity.Role);
+		if (keyword != null) query = query.Where(u => u.Username.Contains(keyword));
 
 		// aqui el cache del server guarda la union de la tabla de roles en los usuarios que ya se les haya hecho esa union
 		var data = await query.Skip(page * size).Take(size).ToListAsync();

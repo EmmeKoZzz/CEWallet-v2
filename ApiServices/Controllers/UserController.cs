@@ -15,11 +15,12 @@ public class UserController(UserService userService, AuthService authService) : 
 	///<summary> Retrieves a list of all user details from the database. </summary>
 	[HttpGet]
 	[AuthorizeRole(UserRole.Type.Administrator)]
-	public async Task<ActionResult<BaseDto<IEnumerable<UserDto>>>> GetUsers([FromQuery] bool role = true,
+	public async Task<ActionResult<BaseDto<IEnumerable<UserDto>>>> GetUsers([FromQuery] string? keyword = default,
+		[FromQuery] bool role = true,
 		[FromQuery] int page = 0,
 		[FromQuery] int size = 10) {
 		try {
-			var response = await userService.GetAll(page, size, role);
+			var response = await userService.GetAll(page, size, role, keyword);
 
 			return Ok(response);
 		} catch (Exception e) { return this.HandleErrors(e); }
