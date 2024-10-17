@@ -142,7 +142,8 @@ public class FundService(AppDbContext dbContext) {
 				BadRequest,
 				Message: "Fund has not enough of this currency to make this operation.");
 
-		fromFundCurrency.Amount -= info.Amount;
+		if (fromFundCurrency.Amount - info.Amount is 0) dbContext.FundCurrencies.Remove(fromFundCurrency);
+		else fromFundCurrency.Amount -= info.Amount;
 
 		var toFundCurrency = toFund.FundCurrencies.SingleOrDefault(currency => currency.CurrencyId == info.Currency);
 		if (toFundCurrency == null) {
