@@ -31,7 +31,7 @@ public class RoleController(RoleService roleService) : ControllerBase {
 
 			return status switch {
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: $"Role {id} Not Found"),
-				HttpStatusCode.OK => this.CustomOk(new RoleDto(role!.Id, role.Name))
+				HttpStatusCode.OK => this.CustomOk(new RoleDto(role!.Id, role.Name, role.Users))
 			};
 		} catch (Exception e) { return this.HandleErrors(e); }
 	}

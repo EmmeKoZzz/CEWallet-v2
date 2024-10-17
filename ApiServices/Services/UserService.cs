@@ -37,7 +37,7 @@ public class UserService(AppDbContext dbContext, RoleService roleService) {
 
 	public async Task<ServiceFlag<User?>> UpdateUser(RegisterUserDto details) {
 		var (role, _, _) = await roleService.FindById(details.RoleId);
-		if (role != HttpStatusCode.OK) return new ServiceFlag<User?>(HttpStatusCode.BadRequest, null);
+		if (role != HttpStatusCode.OK) return new ServiceFlag<User?>(HttpStatusCode.BadRequest);
 
 		var (status, user, _) = await FindBy(name: details.UserName);
 		if (status != HttpStatusCode.OK) return new ServiceFlag<User?>(HttpStatusCode.NotFound);
