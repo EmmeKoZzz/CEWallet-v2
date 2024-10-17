@@ -22,7 +22,7 @@ public class UserController(UserService userService, AuthService authService) : 
 		try {
 			var response = await userService.GetAll(page, size, role, keywords);
 
-			return Ok(response);
+			return this.CustomOk(response);
 		} catch (Exception e) { return this.HandleErrors(e); }
 	}
 
