@@ -13,14 +13,14 @@ namespace ApiServices.Controllers;
 [Route("user")]
 public class UserController(UserService userService, AuthService authService) : ControllerBase {
 	///<summary> Retrieves a list of all user details from the database. </summary>
-	[HttpGet]
+	[HttpPost]
 	[AuthorizeRole(UserRole.Type.Administrator)]
-	public async Task<ActionResult<BaseDto<IEnumerable<UserDto>>>> GetUsers([FromQuery] string? keyword = default,
+	public async Task<ActionResult<BaseDto<IEnumerable<UserDto>>>> GetUsers([FromBody] string[]? keywords = default,
 		[FromQuery] bool role = true,
 		[FromQuery] int page = 0,
 		[FromQuery] int size = 10) {
 		try {
-			var response = await userService.GetAll(page, size, role, keyword);
+			var response = await userService.GetAll(page, size, role, keywords);
 
 			return Ok(response);
 		} catch (Exception e) { return this.HandleErrors(e); }

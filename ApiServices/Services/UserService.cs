@@ -1,7 +1,9 @@
-﻿using System.Net;
+﻿using System.Linq.Expressions;
+using System.Net;
 using ApiServices.Configuration;
 using ApiServices.DataTransferObjects;
 using ApiServices.DataTransferObjects.ApiResponses;
+using ApiServices.Helpers;
 using ApiServices.Helpers.Structs;
 using ApiServices.Models;
 using Microsoft.EntityFrameworkCore;
@@ -9,10 +11,15 @@ using Microsoft.EntityFrameworkCore;
 namespace ApiServices.Services;
 
 public class UserService(AppDbContext dbContext, RoleService roleService) {
-	public async Task<PaginationDto<UserDto>> GetAll(int page, int size, bool role = false, string? keyword = default) {
+	public async Task<PaginationDto<UserDto>>
+		GetAll(int page, int size, bool role = false, string[]? keywords = default) {
 		var query = dbContext.Users.Where(entity => entity.Active);
 		if (role) query = query.Include(entity => entity.Role);
-		if (keyword != null) query = query.Where(u => u.Username.Contains(keyword));
+		if (keywords?.Length > 0) {
+			Expression<Func<User, bool>> cond = u => u.Username.Contains(keywords[0]);
+			cond = keywords.Skip(1).Aggregate(cond, (condition, name) => condition.Or(u => u.Username.Contains(name)));
+			query = query.Where(cond);
+		}
 
 		// aqui el cache del server guarda la union de la tabla de roles en los usuarios que ya se les haya hecho esa union
 		var data = await query.Skip(page * size).Take(size).ToListAsync();
