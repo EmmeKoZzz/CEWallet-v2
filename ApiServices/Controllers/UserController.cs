@@ -37,7 +37,8 @@ public class UserController(UserService userService, AuthService authService) : 
 			var (status, user, _) = await userService.FindBy(id, name, email);
 
 			return status switch {
-				HttpStatusCode.OK => Ok(new UserDto(user!.Id, user.Username, user.Role.Name, user.CreatedAt)),
+				HttpStatusCode.OK => this.CustomOk(
+					new UserDto(user!.Id, user.Username, user.Email, user.Role.Name, user.CreatedAt)),
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: "User not found.")
 			};
 		} catch (Exception e) { return this.HandleErrors(e); }
@@ -100,7 +101,7 @@ public class UserController(UserService userService, AuthService authService) : 
 
 			return status switch {
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: "User not found."),
-				HttpStatusCode.OK => Ok(new UserDto(user!.Id, user.Username, user.Role.Name, user.CreatedAt))
+				HttpStatusCode.OK => Ok(new UserDto(user!.Id, user.Username, user.Email, user.Role.Name, user.CreatedAt))
 			};
 		} catch (Exception e) { return this.HandleErrors(e); }
 	}

@@ -214,7 +214,7 @@ public class FundService(AppDbContext dbContext) {
 		var fund = await Repo.SingleOrDefaultAsync(entity => entity.Active && entity.Id == id);
 		if (fund is null) return new ServiceFlag<FundDto>(NotFound, Message: "Fund not found.");
 
-		fund.Name += $" - Deleted --{DateTime.Now}--";
+		fund.Name += $" CERRADO {DateTime.Now.ToShortTimeString()}";
 		fund.Active = false;
 
 		dbContext.FundCurrencies.RemoveRange(dbContext.FundCurrencies.Where(entity => entity.FundId == id));
@@ -234,7 +234,7 @@ public class FundService(AppDbContext dbContext) {
 			fund.Details,
 			fund.FundCurrencies?.Select(c => new FundDto.CurrencyAmount(c.Currency.Name, c.Amount)),
 			fund.User is not null
-				? new UserDto(fund.User.Id, fund.User.Username, fund.User.Role.Name, fund.User.CreatedAt)
+				? new UserDto(fund.User.Id, fund.User.Username, fund.User.Email, fund.User.Role.Name, fund.User.CreatedAt)
 				: default);
 	}
 

@@ -24,7 +24,8 @@ public class UserService(AppDbContext dbContext, RoleService roleService) {
 		// aqui el cache del server guarda la union de la tabla de roles en los usuarios que ya se les haya hecho esa union
 		var data = await query.Skip(page * size).Take(size).ToListAsync();
 		return new PaginationDto<UserDto>(
-			data.Select(user => new UserDto(user.Id, user.Username, role ? user.Role.Name : null, user.CreatedAt)),
+			data.Select(
+				user => new UserDto(user.Id, user.Username, user.Email, role ? user.Role.Name : null, user.CreatedAt)),
 			page,
 			size,
 			await query.CountAsync());

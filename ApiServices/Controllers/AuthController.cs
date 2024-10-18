@@ -76,7 +76,8 @@ public class AuthController(AuthService authService) : ControllerBase {
 
 			return status switch {
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: "Invalid role specified (role doesn't exist)."),
-				HttpStatusCode.OK => this.CustomOk(new UserDto(user!.Id, user.Username, user.Role.Name, user.CreatedAt))
+				HttpStatusCode.OK => this.CustomOk(
+					new UserDto(user!.Id, user.Username, user.Email, user.Role.Name, user.CreatedAt))
 			};
 		} catch (Exception e) { return this.HandleErrors(e); }
 	}

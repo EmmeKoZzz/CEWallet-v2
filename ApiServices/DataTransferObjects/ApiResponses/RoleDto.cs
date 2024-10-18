@@ -7,5 +7,5 @@ public class RoleDto(Guid id, string role, IEnumerable<User>? users = default) {
 	public string Role { get; } = role;
 
 	public IEnumerable<UserDto>? Users { get; set; } =
-		users?.Select(u => new UserDto(u.Id, u.Username, role, u.CreatedAt));
+		users?.Select(u => new UserDto(u.Id, u.Username, u.Email, role, u.CreatedAt));
 }
