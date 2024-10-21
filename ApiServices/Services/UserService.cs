@@ -44,16 +44,11 @@ public class UserService(AppDbContext dbContext, RoleService roleService) {
 			: new ServiceFlag<User>(HttpStatusCode.OK, user);
 	}
 
-	public async Task<ServiceFlag<User?>> UpdateUser(RegisterUserDto details) {
-		var (role, _, _) = await roleService.FindById(details.RoleId);
-		if (role != HttpStatusCode.OK) return new ServiceFlag<User?>(HttpStatusCode.BadRequest);
-
-		var (status, user, _) = await FindBy(name: details.UserName);
+	public async Task<ServiceFlag<User?>> UpdateUser(EditUserDto details) {
+		var (status, user, _) = await FindBy(id: details.Id);
 		if (status != HttpStatusCode.OK) return new ServiceFlag<User?>(HttpStatusCode.NotFound);
 
-		(user!.Email, user.RoleId, user.Username) = (details.Email, details.RoleId, details.Password);
-		await dbContext.SaveChangesAsync();
-
+		(user!.Email, user.Username) = (details.Email, details.UserName);
 		return new ServiceFlag<User?>(HttpStatusCode.OK, user);
 	}
 
@@ -61,13 +56,10 @@ public class UserService(AppDbContext dbContext, RoleService roleService) {
 		var (status, user, _) = await FindBy(details.UserId);
 
 		if (status != HttpStatusCode.OK) return HttpStatusCode.NotFound;
-
 		if (!user!.VerifyPassword(details.OldPassword)) return HttpStatusCode.Unauthorized;
-
 		if (details.OldPassword == details.Password) return HttpStatusCode.OK;
 
 		user.GeneratePasswordHash(details.Password);
-		await dbContext.SaveChangesAsync();
 
 		return HttpStatusCode.OK;
 	}
@@ -84,9 +76,7 @@ public class UserService(AppDbContext dbContext, RoleService roleService) {
 		var funds = dbContext.Funds.Where(entity => entity.UserId == id);
 		foreach (var fund in funds) fund.UserId = null;
 
-		await dbContext.SaveChangesAsync();
 		await dbContext.Entry(user).Reference(entity => entity.Role).LoadAsync();
-
 		return new ServiceFlag<User?>(HttpStatusCode.OK, user);
 	}
 }

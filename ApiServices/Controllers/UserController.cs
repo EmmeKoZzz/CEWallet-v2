@@ -1,4 +1,5 @@
 using System.Net;
+using ApiServices.Configuration;
 using ApiServices.Constants;
 using ApiServices.DataTransferObjects;
 using ApiServices.DataTransferObjects.ApiResponses;
@@ -6,12 +7,13 @@ using ApiServices.Decorators;
 using ApiServices.Helpers;
 using ApiServices.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace ApiServices.Controllers;
 
 [ApiController]
 [Route("user")]
-public class UserController(UserService userService, AuthService authService) : ControllerBase {
+public class UserController(UserService userService, AuthService authService, AppDbContext dbContext) : ControllerBase {
 	///<summary> Retrieves a list of all user details from the database. </summary>
 	[HttpPost]
 	[AuthorizeRole(UserRole.Type.Administrator)]
@@ -49,9 +51,8 @@ public class UserController(UserService userService, AuthService authService) : 
 	/// <response code="401"> Unauthorized. </response>
 	/// <response code="404"> User not found. </response>
 	[HttpPut]
-	public async Task<ActionResult<BaseDto<UserDto>>> UpdateUser([FromBody] RegisterUserDto details) {
+	public async Task<ActionResult<BaseDto<UserDto>>> UpdateUser([FromBody] EditUserDto details) {
 		var (validation, sessionUser, _) = await authService.Authorize(HttpContext);
-
 		if (validation != HttpStatusCode.OK) return this.CustomUnauthorized();
 
 		if (UserRole.Value(sessionUser!.Role.Name) != UserRole.Type.Administrator) {
@@ -63,6 +64,7 @@ public class UserController(UserService userService, AuthService authService) : 
 
 		try {
 			var (status, _, _) = await userService.UpdateUser(details);
+			await dbContext.SaveChangesAsync();
 
 			return status switch {
 				HttpStatusCode.OK => Ok(),
@@ -81,6 +83,7 @@ public class UserController(UserService userService, AuthService authService) : 
 	public async Task<ActionResult<BaseDto<UserDto>>> ResetPassword([FromBody] ResetPasswordDto details) {
 		try {
 			var status = await userService.ResetPassword(details);
+			await dbContext.SaveChangesAsync();
 
 			return status switch {
 				HttpStatusCode.OK => Ok(),
@@ -98,6 +101,7 @@ public class UserController(UserService userService, AuthService authService) : 
 	public async Task<ActionResult<BaseDto<UserDto>>> Delete([FromRoute] Guid id) {
 		try {
 			var (status, user, _) = await userService.Delete(id);
+			await dbContext.SaveChangesAsync();
 
 			return status switch {
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: "User not found."),
