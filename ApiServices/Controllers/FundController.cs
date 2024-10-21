@@ -20,10 +20,16 @@ public class FundController(AppDbContext dbContext, FundService funds, ActivityL
 	/// <response code="200">Successful retrieval of funds.</response>
 	/// <response code="401">Unauthorized access.</response>
 	[HttpPost]
-	[AuthorizeRole(UserRole.Type.Administrator, UserRole.Type.Supervisor)]
+	[AuthorizeRole]
 	public async Task<ActionResult<BaseDto<PaginationDto<FundDto>>>> GetAll([FromQuery] int page = 0,
 		[FromQuery] int size = 10,
 		[FromBody] FundFilter? filter = default) {
+		var (_, userSession, _) = await auth.Authorize(HttpContext);
+		if (userSession!.Role.Name == UserRole.Value(UserRole.Type.Assessor)) {
+			var tempUsernames = (filter ?? new FundFilter()).Usernames;
+			(filter ?? new FundFilter()).Usernames = [userSession.Username, ..tempUsernames ?? []];
+		}
+	
 		try { return this.CustomOk(await funds.GetAllDev(page, size, filter)); } catch (Exception e) {
 			return this.HandleErrors(e);
 		}
