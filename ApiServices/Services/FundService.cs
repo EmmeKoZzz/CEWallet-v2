@@ -200,12 +200,15 @@ public class FundService(AppDbContext dbContext) {
 
 	public async Task<ServiceFlag<FundDto>> AttachUser(Guid userId, Guid fundId) {
 		var fund = await Repo.SingleOrDefaultAsync(entity => entity.Active && entity.Id == fundId);
-		var user = await dbContext.Users.Include(entity => entity.Role).
-			SingleOrDefaultAsync(entity => entity.Id == userId);
+		var user = userId != Guid.Empty
+			? await dbContext.Users.Include(entity => entity.Role).SingleOrDefaultAsync(entity => entity.Id == userId)
+			: null;
 
-		if (fund == null || user == null)
-			return new ServiceFlag<FundDto>(NotFound, Message: $"{(fund == null ? "Fund" : "User")} not found.");
-		fund.User = user;
+		if (fund == null) return new ServiceFlag<FundDto>(NotFound, Message: "Fund not found.");
+		
+		if (userId == Guid.Empty) fund.UserId = null;
+		else if (user == null) return new ServiceFlag<FundDto>(NotFound, Message: "User not found.");
+		else fund.UserId = user.Id;
 
 		return new ServiceFlag<FundDto>(OK, CreateFundDto(fund));
 	}
