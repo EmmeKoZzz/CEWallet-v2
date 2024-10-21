@@ -21,7 +21,14 @@ public class ActivityLogService(AppDbContext dbContext) {
 			Include(entity => entity.Currency).
 			AsQueryable();
 
-		await ApplyFilters();
+		if (assessor != null && assessor.Role.Name == UserRole.Value(UserRole.Type.Assessor)) {
+			filter ??= new ActivityLogFilter();
+			await dbContext.Entry(assessor).Collection(u => u.Funds).LoadAsync();
+			filter.Funds = [..assessor.Funds.Select(funds => funds.Name), ..filter.Funds ?? []];
+			if (filter.Funds.Length == 0) { return new PaginationDto<ActivityLogDto>([], page, size, 0); }
+		}
+
+		ApplyFilters();
 		ApplyOrdering();
 
 		var totalCount = await query.CountAsync();
@@ -29,13 +36,7 @@ public class ActivityLogService(AppDbContext dbContext) {
 
 		return new PaginationDto<ActivityLogDto>(paginatedResults.Select(MapToActivityLogDto), page, size, totalCount);
 
-		async Task ApplyFilters() {
-			if (assessor != null) {
-				filter ??= new ActivityLogFilter();
-				await dbContext.Entry(assessor).Collection(u => u.Funds).LoadAsync();
-				filter.Funds = [..assessor.Funds.Select(funds => funds.Name), ..filter.Funds ?? []];
-			}
-
+		void ApplyFilters() {
 			if (filter == null) return;
 			if (filter.Since.HasValue) query = query.Where(entity => entity.CreatedAt >= filter.Since);
 			if (filter.Until.HasValue) query = query.Where(entity => entity.CreatedAt <= filter.Until);
