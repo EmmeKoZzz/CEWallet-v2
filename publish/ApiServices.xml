@@ -157,7 +157,7 @@
             <summary> Retrieves a list of user details based on specified criteria. </summary>
              <response code="404"> User not found. </response>
         </member>
-        <member name="M:ApiServices.Controllers.UserController.UpdateUser(ApiServices.DataTransferObjects.RegisterUserDto)">
+        <member name="M:ApiServices.Controllers.UserController.UpdateUser(ApiServices.DataTransferObjects.EditUserDto)">
             <summary> Updates the details of a specified user. </summary>
              <response code="400"> Invalid request (e.g., invalid data). </response>
              <response code="401"> Unauthorized. </response>
