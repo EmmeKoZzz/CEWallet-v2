@@ -71,6 +71,7 @@ public class UserService(AppDbContext dbContext, RoleService roleService) {
 			Active: true
 		}) return new ServiceFlag<User?>(HttpStatusCode.NotFound);
 
+		user.Username += $" ELIMINADO ${DateTime.Now.ToShortDateString()}";
 		user.Active = false;
 
 		var funds = dbContext.Funds.Where(entity => entity.UserId == id);

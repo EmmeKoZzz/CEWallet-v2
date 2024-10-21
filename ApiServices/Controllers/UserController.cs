@@ -99,14 +99,18 @@ public class UserController(UserService userService, AuthService authService, Ap
 	[HttpDelete("{id:guid}")]
 	[AuthorizeRole(UserRole.Type.Administrator)]
 	public async Task<ActionResult<BaseDto<UserDto>>> Delete([FromRoute] Guid id) {
+		await using var trx = await dbContext.Database.BeginTransactionAsync();
 		try {
 			var (status, user, _) = await userService.Delete(id);
 			await dbContext.SaveChangesAsync();
-
+			await trx.CommitAsync();
 			return status switch {
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: "User not found."),
 				HttpStatusCode.OK => Ok(new UserDto(user!.Id, user.Username, user.Email, user.Role.Name, user.CreatedAt))
 			};
-		} catch (Exception e) { return this.HandleErrors(e); }
+		} catch (Exception e) {
+			await trx.RollbackAsync();
+			return this.HandleErrors(e);
+		}
 	}
 }

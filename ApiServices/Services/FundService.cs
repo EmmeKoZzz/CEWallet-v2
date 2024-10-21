@@ -205,7 +205,7 @@ public class FundService(AppDbContext dbContext) {
 			: null;
 
 		if (fund == null) return new ServiceFlag<FundDto>(NotFound, Message: "Fund not found.");
-		
+
 		if (userId == Guid.Empty) fund.UserId = null;
 		else if (user == null) return new ServiceFlag<FundDto>(NotFound, Message: "User not found.");
 		else fund.UserId = user.Id;
@@ -217,7 +217,7 @@ public class FundService(AppDbContext dbContext) {
 		var fund = await Repo.SingleOrDefaultAsync(entity => entity.Active && entity.Id == id);
 		if (fund is null) return new ServiceFlag<FundDto>(NotFound, Message: "Fund not found.");
 
-		fund.Name += $" CERRADO {DateTime.Now.ToShortTimeString()}";
+		fund.Name += $" CERRADO {DateTime.Now.ToShortDateString()}";
 		fund.Active = false;
 
 		dbContext.FundCurrencies.RemoveRange(dbContext.FundCurrencies.Where(entity => entity.FundId == id));
