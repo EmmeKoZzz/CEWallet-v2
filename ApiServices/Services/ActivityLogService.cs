@@ -32,7 +32,7 @@ public class ActivityLogService(AppDbContext dbContext) {
 		async Task ApplyFilters() {
 			if (assessor != null) {
 				filter ??= new ActivityLogFilter();
-				await dbContext.Entry(assessor).Reference(u => u.Funds).LoadAsync();
+				await dbContext.Entry(assessor).Collection(u => u.Funds).LoadAsync();
 				filter.Funds = [..assessor.Funds.Select(funds => funds.Name), ..filter.Funds ?? []];
 			}
 
