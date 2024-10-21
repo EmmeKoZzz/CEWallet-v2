@@ -24,7 +24,7 @@ public class CurrencyController(
 	/// <response code="400"> Bad request (e.g., invalid data in request body). </response>
 	/// <response code="401"> Unauthorized (missing or invalid authorization token). </response>
 	[HttpGet]
-	[AuthorizeRole(UserRole.Type.Administrator)]
+	[AuthorizeRole]
 	public async Task<ActionResult<BaseDto<IEnumerable<CurrencyDto>>>> GetAll([FromQuery] bool funds = false) {
 		try { return this.CustomOk(await currency.GetAll(funds)); } catch (Exception e) { return this.HandleErrors(e); }
 	}
@@ -34,7 +34,7 @@ public class CurrencyController(
 	/// <response code="200">Currency added successfully.</response>
 	/// <response code="401">Unauthorized (missing or invalid authorization token).</response>
 	[HttpPost]
-	[AuthorizeRole(UserRole.Type.Administrator)]
+	[AuthorizeRole]
 	public async Task<ActionResult<BaseDto<CurrencyDto>>> Add(AddCurrencyDto info) {
 		try {
 			var res = await currency.Add(info);
@@ -54,7 +54,7 @@ public class CurrencyController(
 	/// <response code="401">Unauthorized (missing or invalid authorization token).</response>
 	/// <response code="404">Currency not found.</response>
 	[HttpPut("{id:guid}")]
-	[AuthorizeRole(UserRole.Type.Administrator)]
+	[AuthorizeRole]
 	public async Task<ActionResult<BaseDto<CurrencyDto>>> Update([FromBody] AddCurrencyDto info, [FromRoute] Guid id) {
 		try {
 			var (status, res, _) = await currency.Update(info, id);
