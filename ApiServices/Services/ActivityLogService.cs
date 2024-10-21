@@ -12,13 +12,16 @@ namespace ApiServices.Services;
 public class ActivityLogService(AppDbContext dbContext) {
 	private DbSet<ActivityLog> Repo { get; } = dbContext.ActivityLogs;
 
-	public async Task<PaginationDto<ActivityLogDto>> GetAll(int page, int size, ActivityLogFilter? filter = null) {
+	public async Task<PaginationDto<ActivityLogDto>> GetAll(int page,
+		int size,
+		ActivityLogFilter? filter = null,
+		User? assessor = null) {
 		var query = Repo.Include(entity => entity.User).
 			Include(entity => entity.Fund).
 			Include(entity => entity.Currency).
 			AsQueryable();
 
-		ApplyFilters();
+		await ApplyFilters();
 		ApplyOrdering();
 
 		var totalCount = await query.CountAsync();
@@ -26,7 +29,13 @@ public class ActivityLogService(AppDbContext dbContext) {
 
 		return new PaginationDto<ActivityLogDto>(paginatedResults.Select(MapToActivityLogDto), page, size, totalCount);
 
-		void ApplyFilters() {
+		async Task ApplyFilters() {
+			if (assessor != null) {
+				filter ??= new ActivityLogFilter();
+				await dbContext.Entry(assessor).Reference(u => u.Funds).LoadAsync();
+				filter.Funds = [..assessor.Funds.Select(funds => funds.Name), ..filter.Funds ?? []];
+			}
+
 			if (filter == null) return;
 			if (filter.Since.HasValue) query = query.Where(entity => entity.CreatedAt >= filter.Since);
 			if (filter.Until.HasValue) query = query.Where(entity => entity.CreatedAt <= filter.Until);

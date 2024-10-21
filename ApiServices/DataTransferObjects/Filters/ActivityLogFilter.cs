@@ -12,4 +12,6 @@ public record ActivityLogFilter(
 	string[]? Funds = default,
 	string[]? Users = default,
 	Guid[]? Currencies = default
-);
+) {
+	public string[]? Funds { get; set; } = Funds;
+};
