@@ -105,6 +105,7 @@ public class UserController(UserService userService, AuthService authService, Ap
 			await dbContext.SaveChangesAsync();
 			await trx.CommitAsync();
 			return status switch {
+				HttpStatusCode.BadRequest => this.CustomBadRequest(detail: "User \"admin\" can not be delete."),
 				HttpStatusCode.NotFound => this.CustomNotFound(detail: "User not found."),
 				HttpStatusCode.OK => Ok(new UserDto(user!.Id, user.Username, user.Email, user.Role.Name, user.CreatedAt))
 			};
