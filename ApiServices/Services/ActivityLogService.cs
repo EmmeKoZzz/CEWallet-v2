@@ -105,8 +105,8 @@ public class ActivityLogService(AppDbContext dbContext) {
 	private static ActivityLogDto MapToActivityLogDto(ActivityLog entity) {
 		return new ActivityLogDto(
 			entity.Id,
-			entity.User.Username,
-			entity.Fund.Name,
+			entity.User.Active ? entity.User.Username : entity.User.Username[..^36],
+			entity.Fund.Active ? entity.Fund.Name : entity.Fund.Name[..^36],
 			entity.Currency?.Name,
 			entity.Activity,
 			entity.TransactionType,

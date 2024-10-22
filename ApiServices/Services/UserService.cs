@@ -73,10 +73,8 @@ public class UserService(AppDbContext dbContext, RoleService roleService) {
 
 		if (user is {
 			Username: "admin"
-		}) return new ServiceFlag<User?>(HttpStatusCode.BadRequest);
-
-		var date = DateTime.Now;
-		user.Username += $" ELIMINADO ${date.ToShortDateString()}, ${date.ToShortTimeString()}";
+		}) return new ServiceFlag<User?>(HttpStatusCode.BadRequest); 
+		user.Username += $"-(ELIMINADO)${Guid.NewGuid()}";
 		user.Active = false;
 
 		var funds = dbContext.Funds.Where(entity => entity.UserId == id);
